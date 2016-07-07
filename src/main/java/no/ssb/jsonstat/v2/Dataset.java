@@ -1,6 +1,7 @@
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.base.*;
 import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
@@ -8,6 +9,7 @@ import no.ssb.jsonstat.JsonStat;
 import java.time.Instant;
 import java.util.*;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -339,7 +341,7 @@ public class Dataset extends JsonStat {
             if (Stream.empty().equals(values))
                 dataset.value = Collections.emptyList();
             else
-                dataset.value = values.collect(MoreCollectors.toImmutableList());
+                dataset.value = values.map(Optional::ofNullable).collect(MoreCollectors.toImmutableList());
 
             return dataset;
         }
