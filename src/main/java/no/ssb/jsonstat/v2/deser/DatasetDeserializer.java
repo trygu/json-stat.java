@@ -3,14 +3,13 @@ package no.ssb.jsonstat.v2.deser;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import no.ssb.jsonstat.v2.Dataset;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,12 +41,13 @@ public class DatasetDeserializer extends JsonDeserializer<Dataset> {
                     );
                     break;
                 case "value":
-                    // TODO: Check cast.
-                    builder.withValues(
-                            (Collection<Number>) p.readValueAs(
-                                    new TypeReference<List<Number>>() {
-                                    })
-                    );
+                    List<Number> values = ctxt.readValue(
+                            p,
+                            ctxt.getTypeFactory().constructCollectionType(
+                                    ArrayList.class,
+                                    Number.class
+                            ));
+                    builder.withValues(values);
                     break;
                 case "id":
                 case "size":

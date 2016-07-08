@@ -6,7 +6,6 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.io.Resources;
-import no.ssb.jsonstat.JsonStat;
 import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -49,9 +48,11 @@ public class DatasetDeserializeTest {
                 Dataset.class
         );
 
-        assertThat(jsonStat.getLabel().get()).isEqualTo("Population by province of residence, place of birth, age, gender and year in Galicia");
-        assertThat(jsonStat.getSource().get()).isEqualTo("INE and IGE");
-        assertThat(jsonStat.getUpdated().get()).isEqualTo(Instant.parse("2012-12-27T12:25:09Z"));
+        assertThat(jsonStat.getVersion()).isEqualTo("2.0");
+        assertThat(jsonStat.getClazz()).isEqualTo("dataset");
+        assertThat(jsonStat.getLabel()).contains("Population by province of residence, place of birth, age, gender and year in Galicia");
+        assertThat(jsonStat.getSource()).contains("INE and IGE");
+        assertThat(jsonStat.getUpdated()).contains(Instant.parse("2012-12-27T12:25:09Z"));
 
     }
 }
