@@ -5,15 +5,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.google.common.collect.Multimap;
 import no.ssb.jsonstat.v2.Dataset;
+import no.ssb.jsonstat.v2.Dimension;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Created by hadrien on 07/07/16.
+ * Deserializer for Dataset.
+ * <p>
+ * TODO: Use builder instead.
  */
 public class DatasetDeserializer extends JsonDeserializer<Dataset> {
 
@@ -23,9 +29,12 @@ public class DatasetDeserializer extends JsonDeserializer<Dataset> {
             p.nextToken();
         }
 
+        Set<String> ids;
+        List<Integer> size;
+        Multimap<String, String> roles;
+
         Dataset.Builder builder = Dataset.create();
-        JsonToken currentToken;
-        while ((currentToken = p.nextValue()) != JsonToken.END_OBJECT) {
+        while (p.nextValue() != JsonToken.END_OBJECT) {
             switch (p.getCurrentName()) {
                 case "label":
                     builder.withLabel(p.getValueAsString());
@@ -49,10 +58,27 @@ public class DatasetDeserializer extends JsonDeserializer<Dataset> {
                             ));
                     builder.withValues(values);
                     break;
-                case "id":
-                case "size":
-                case "role":
                 case "dimension":
+                    Map<String, Dimension> dims = ctxt.readValue(p, ctxt.getTypeFactory().constructMapType(
+                            Map.class,
+                            String.class,
+                            Dimension.class
+                    ));
+                    break;
+                case "id":
+                    ids = ctxt.readValue(p,
+                            ctxt.getTypeFactory().constructCollectionType(
+                                    Set.class,
+                                    String.class
+                            ));
+                    break;
+                case "size":
+                    size = ctxt.readValue(p, ctxt.getTypeFactory().constructCollectionType(
+                            List.class,
+                            Integer.class
+                    ));
+                    break;
+                case "role":
                 case "link":
                 case "version":
                 case "class":

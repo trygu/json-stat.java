@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.io.Resources;
 import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
+import no.ssb.jsonstat.v2.deser.DimensionDeserializer;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -32,12 +33,13 @@ public class DatasetDeserializeTest {
 
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Dataset.class, new DatasetDeserializer());
+        // TODO mock dimension.
+        module.addDeserializer(Dimension.class, new DimensionDeserializer());
         mapper.registerModule(module);
     }
 
     @Test
     public void testGalicia() throws Exception {
-
 
         URL galicia = Resources.getResource(getClass(), "./galicia.json");
 
