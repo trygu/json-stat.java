@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import no.ssb.jsonstat.v2.Dataset;
 import no.ssb.jsonstat.v2.Dimension;
@@ -20,6 +21,7 @@ import java.util.Set;
  * Deserializer for Dataset.
  * <p>
  * TODO: Use builder instead.
+ * TODO: Check {@link com.fasterxml.jackson.databind.deser.ResolvableDeserializer}
  */
 public class DatasetDeserializer extends JsonDeserializer<Dataset> {
 
@@ -59,10 +61,10 @@ public class DatasetDeserializer extends JsonDeserializer<Dataset> {
                     builder.withValues(values);
                     break;
                 case "dimension":
-                    Map<String, Dimension> dims = ctxt.readValue(p, ctxt.getTypeFactory().constructMapType(
+                    Map<String, Dimension.Builder> dims = ctxt.readValue(p, ctxt.getTypeFactory().constructMapType(
                             Map.class,
                             String.class,
-                            Dimension.class
+                            Dimension.Builder.class
                     ));
                     break;
                 case "id":
@@ -79,6 +81,13 @@ public class DatasetDeserializer extends JsonDeserializer<Dataset> {
                     ));
                     break;
                 case "role":
+                    roles = ctxt.readValue(p,
+                            ctxt.getTypeFactory().constructParametricType(
+                                    ArrayListMultimap.class,
+                                    String.class,
+                                    String.class
+                            ));
+                    break;
                 case "link":
                 case "version":
                 case "class":

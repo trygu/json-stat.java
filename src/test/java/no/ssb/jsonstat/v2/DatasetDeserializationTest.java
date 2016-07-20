@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Created by hadrien on 07/07/16.
  */
-public class DatasetDeserializeTest {
+public class DatasetDeserializationTest {
 
     private ObjectMapper mapper;
 
@@ -34,7 +34,7 @@ public class DatasetDeserializeTest {
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Dataset.class, new DatasetDeserializer());
         // TODO mock dimension.
-        module.addDeserializer(Dimension.class, new DimensionDeserializer());
+        module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
         mapper.registerModule(module);
     }
 

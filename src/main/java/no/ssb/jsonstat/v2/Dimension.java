@@ -209,10 +209,9 @@ public class Dimension extends JsonStat {
         }
 
         /**
-         * Set the values of the dimension in index/label form.
+         * Set the values of the dimension builder in index/label form.
          *
          * @param indexedLabels
-         * @return
          */
         public Builder withIndexedLabels(ImmutableMap<String, String> indexedLabels) {
             // TODO: index seems unnecessary, we could use index.keySet()
