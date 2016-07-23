@@ -1,7 +1,6 @@
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.base.*;
 import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
@@ -9,8 +8,8 @@ import no.ssb.jsonstat.JsonStat;
 import java.time.Instant;
 import java.util.*;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -36,7 +35,7 @@ public class Dataset extends JsonStat {
     private String source = null;
     private Instant updated = null;
     private Map<String, Dimension> dimension;
-    private List<Object> value;
+    private List<Number> value;
 
     protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
         super(Version.TWO, Class.DATASET);
@@ -137,7 +136,7 @@ public class Dataset extends JsonStat {
      * row by row and cell by cell, in the order defined by the dimensions.
      */
     @JsonIgnore
-    public Iterable<List<Object>> getRows() {
+    public Iterable<List<Number>> getRows() {
         return Iterables.paddedPartition(this.value, this.id.size());
     }
 
@@ -155,7 +154,7 @@ public class Dataset extends JsonStat {
      * @throws NullPointerException     if any of the dimension names is null
      */
     @JsonIgnore
-    public Iterable<List<Object>> getRows(String... dimensions) {
+    public Iterable<List<Number>> getRows(String... dimensions) {
         return getRows(Arrays.asList(dimensions));
     }
 
@@ -172,7 +171,7 @@ public class Dataset extends JsonStat {
      * @throws IllegalArgumentException if any of the dimension names is not in the dataset
      * @throws NullPointerException     if any of the dimension names is null
      */
-    public Iterable<List<Object>> getRows(List<String> dimensions) {
+    public Iterable<List<Number>> getRows(List<String> dimensions) {
 
         if (dimensions.isEmpty())
             return Collections.emptyList();
@@ -189,7 +188,7 @@ public class Dataset extends JsonStat {
         }
 
         return Iterables.transform(getRows(), input -> {
-            ImmutableList.Builder<Object> filteredRow = ImmutableList.builder();
+            ImmutableList.Builder<Number> filteredRow = ImmutableList.builder();
             for (int i = 0; i < index.size(); i++) {
                 if (index.get(i))
                     filteredRow.add(input.get(i));
@@ -202,7 +201,7 @@ public class Dataset extends JsonStat {
     public static class Builder {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
-        private final ImmutableList.Builder values;
+        private final ImmutableList.Builder<Optional<Number>> values;
         private String label;
         private String source;
         private Instant update;
@@ -233,17 +232,11 @@ public class Dataset extends JsonStat {
 
             if (dimensionBuilders.build().contains(dimension))
                 throw new DuplicateDimensionException(
-                       String.format("the builder already contains the dimension %s", dimension.toString())
+                        String.format("the builder already contains the dimension %s", dimension.toString())
                 );
 
             dimensionBuilders.add(dimension);
             return this;
-        }
-
-        private ImmutableSet<Dimension> buildDimensions() {
-            return ImmutableSet.copyOf(
-                    Iterables.transform(dimensionBuilders.build(), Dimension.Builder::build)
-            );
         }
 
         public Dataset build() {
@@ -265,7 +258,7 @@ public class Dataset extends JsonStat {
             dataset.label = label;
             dataset.source = source;
             dataset.updated = update;
-            dataset.value = values.build();
+            dataset.value = values.build().stream().map(number -> number.isPresent() ? number.get() : null).collect(Collectors.toList());
             dataset.dimension = dimensionMap;
 
             return dataset;
@@ -280,7 +273,7 @@ public class Dataset extends JsonStat {
          * @param values the values in row-major order
          * @return a built data set
          */
-        public Dataset withValues(java.util.Collection<Number> values) {
+        public Builder withValues(java.util.Collection<Number> values) {
             checkNotNull(values);
 
             if (values.isEmpty())
@@ -298,7 +291,7 @@ public class Dataset extends JsonStat {
          * @param values the values in row-major order
          * @return a built data set
          */
-        public Dataset withValues(Iterable<Number> values) {
+        public Builder withValues(Iterable<Number> values) {
             checkNotNull(values);
 
             // Optimization.
@@ -332,18 +325,14 @@ public class Dataset extends JsonStat {
          * @param values the values in row-major order
          * @return a built data set
          */
-        public Dataset withValues(Stream<Number> values) {
+        public Builder withValues(Stream<Number> values) {
             checkNotNull(values);
 
-            Dataset dataset = this.build();
-
             // TODO: Does it make sense to create an empty data set?
-            if (Stream.empty().equals(values))
-                dataset.value = Collections.emptyList();
-            else
-                dataset.value = values.map(Optional::ofNullable).collect(MoreCollectors.toImmutableList());
+            if (!Stream.empty().equals(values))
+                this.values.addAll(values.map(Optional::ofNullable).collect(MoreCollectors.toImmutableList()));
 
-            return dataset;
+            return this;
         }
 
         /**
@@ -354,7 +343,7 @@ public class Dataset extends JsonStat {
          * @param mapper a mapper function to use to populate the metrics in the data set
          * @return the data set
          */
-        public Dataset withMapper(Function<List<String>, List<Number>> mapper) {
+        public Builder withMapper(Function<List<String>, List<Number>> mapper) {
 
             // Get all the dimensions.
             List<ImmutableList<String>> dimensions = dimensionBuilders.build().stream()
@@ -370,7 +359,7 @@ public class Dataset extends JsonStat {
             return withValues(combinations.stream().map(mapper).flatMap(Collection::stream));
         }
 
-        public Builder addRow(ImmutableMap<String, ?> row) {
+        public Builder addRow(ImmutableMap<String, Number> row) {
 
             for (Dimension.Builder dimension : dimensionBuilders.build()) {
                 String id = dimension.getId();
@@ -379,12 +368,17 @@ public class Dataset extends JsonStat {
                 if (!dimension.isMetric())
                     dimension.withCategories(row.get(id).toString());
                 // Add the value.
-                values.add(row.get(id));
+                values.add(Optional.ofNullable(row.get(id)));
 
             }
 
             return this;
 
+        }
+
+        public Builder withDimensions(Iterable<Dimension.Builder> values) {
+            values.forEach(this::withDimension);
+            return this;
         }
     }
 }

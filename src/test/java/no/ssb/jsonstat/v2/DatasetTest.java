@@ -168,7 +168,7 @@ public class DatasetTest {
                 ).keySet().asList()
         ).stream().map(dimensions -> dimensions.hashCode()).collect(Collectors.toList());
 
-        Dataset build = builder.withValues(collect);
+        Dataset build = builder.withValues(collect).build();
 
         assertThat(build).isNotNull();
 
@@ -187,7 +187,7 @@ public class DatasetTest {
                         .withCategories("C1", "C2", "C3", "C4")
                 ).withMapper(strings -> {
                     return newArrayList(String.join("", strings).hashCode());
-                });
+                }).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows().spliterator(), false)
                 .flatMap(Collection::stream)
@@ -221,7 +221,7 @@ public class DatasetTest {
                         .withCategories("C1", "C2", "C3", "C4")
                 ).withMapper(strings -> {
                     return newArrayList(String.join("", strings).hashCode());
-                });
+                }).build();
 
         assertThat(dataset.getRows(Collections.emptyList())).isEmpty();
     }
@@ -238,7 +238,7 @@ public class DatasetTest {
                         .withCategories("C1", "C2", "C3", "C4")
                 ).withMapper(strings -> {
                     return newArrayList(String.join("", strings).hashCode());
-                });
+                }).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows(Arrays.asList("A", "B", "C")).spliterator(), false)
                 .flatMap(Collection::stream)
@@ -280,7 +280,7 @@ public class DatasetTest {
                 dimensions -> newArrayList(
                         dimensions.hashCode(),
                         dimensions.hashCode())
-        );
+        ).build();
 
         // Supplier.
         List<Number> collect = cartesianProduct(

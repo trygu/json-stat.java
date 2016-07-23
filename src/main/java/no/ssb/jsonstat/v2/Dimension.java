@@ -33,7 +33,7 @@ public class Dimension extends JsonStat {
 
     public Optional<String> getLabel() {
         // "label content should be written in lowercase except when it is a dataset label"
-        return Optional.ofNullable(label).map(String::toUpperCase);
+        return Optional.ofNullable(label).map(String::toLowerCase);
     }
 
     public void setLabel(String label) {
