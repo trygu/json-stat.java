@@ -32,7 +32,7 @@ public class DatasetDeserializationTest {
         mapper.registerModule(new JavaTimeModule());
 
         SimpleModule module = new SimpleModule();
-        module.addDeserializer(Dataset.class, new DatasetDeserializer());
+        module.addDeserializer(Dataset.Builder.class, new DatasetDeserializer());
         // TODO mock dimension.
         module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
         mapper.registerModule(module);
@@ -47,8 +47,8 @@ public class DatasetDeserializationTest {
                 new BufferedInputStream(
                         galicia.openStream()
                 ),
-                Dataset.class
-        );
+                Dataset.Builder.class
+        ).build();
 
         assertThat(jsonStat.getVersion()).isEqualTo("2.0");
         assertThat(jsonStat.getClazz()).isEqualTo("dataset");
