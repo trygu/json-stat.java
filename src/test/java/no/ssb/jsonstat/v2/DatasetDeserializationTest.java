@@ -14,12 +14,12 @@ import org.testng.annotations.Test;
 import java.io.BufferedInputStream;
 import java.net.URL;
 import java.time.Instant;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Created by hadrien on 07/07/16.
- */
 public class DatasetDeserializationTest {
 
     private ObjectMapper mapper;
@@ -33,7 +33,6 @@ public class DatasetDeserializationTest {
 
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Dataset.Builder.class, new DatasetDeserializer());
-        // TODO mock dimension.
         module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
         mapper.registerModule(module);
     }
@@ -55,6 +54,16 @@ public class DatasetDeserializationTest {
         assertThat(jsonStat.getLabel()).contains("Population by province of residence, place of birth, age, gender and year in Galicia");
         assertThat(jsonStat.getSource()).contains("INE and IGE");
         assertThat(jsonStat.getUpdated()).contains(Instant.parse("2012-12-27T12:25:09Z"));
+
+        Set<String> dimensions = jsonStat.getDimension().keySet();
+        for (List<Number> numbers : jsonStat.getRows()) {
+            Iterator<String> nameIt = dimensions.iterator();
+            Iterator<Number> valueIt = numbers.iterator();
+            while (nameIt.hasNext() && valueIt.hasNext())
+                System.err.println(nameIt.next() + ": " + valueIt.next());
+
+            System.err.println("---");
+        }
 
     }
 }

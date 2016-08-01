@@ -44,7 +44,7 @@ public class Dimension extends JsonStat {
         return category;
     }
 
-    enum Roles {
+    public enum Roles {
         TIME, GEO, METRIC
     }
 
