@@ -17,7 +17,7 @@ Add json stat dependency into your project
 <dependency>
             <groupId>no.ssb.jsonstat</groupId>
             <artifactId>json-stat</artifactId>
-            <version>0.1.1</version>
+            <version>0.1.3</version>
 </dependency>
 ````
 
@@ -59,3 +59,18 @@ Dataset dataset = builder.withMapper(
 
 
 ````
+
+Deserialize a dataset 
+
+````java
+
+mapper = new ObjectMapper();
+mapper.registerModule(new JsonStatModule());
+
+Dataset.Builder builder = mapper.readValue("{ ... }", Dataset.Builder.class);
+// Or
+Dataset dataset = mapper.readValue("{ ... }", Dataset.class);
+
+````
+
+

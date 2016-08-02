@@ -23,7 +23,7 @@ public class CollectionTest {
         mapper.registerModule(new SimpleModule());
     }
 
-    @Test(dependsOnMethods = "testDeserialize")
+    @Test(enabled = false, dependsOnMethods = "testDeserialize")
     public void testSerialize(String testFile) throws Exception {
 
         Collection deserialize = deserialize(Resources.getResource(testFile));
@@ -34,7 +34,7 @@ public class CollectionTest {
 
     }
 
-    @Test
+    @Test(enabled = false)
     public void testDeserialize(String testFile) throws Exception {
 
         Collection collection = deserialize(Resources.getResource(testFile));
