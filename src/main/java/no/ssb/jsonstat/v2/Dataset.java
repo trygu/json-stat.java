@@ -1,6 +1,7 @@
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -45,14 +47,14 @@ public class Dataset extends JsonStat {
     }
 
     /**
-     * Create a new {@link Dataset.Builder} instance.
+     * Create a new {@link Builder} instance.
      */
     public static Builder create() {
         return new Builder();
     }
 
     /**
-     * Create a new {@link Dataset.Builder} instance.
+     * Create a new {@link Builder} instance.
      */
     public static Builder create(String label) {
         Builder builder = new Builder();
@@ -132,12 +134,89 @@ public class Dataset extends JsonStat {
     }
 
     /**
+     * Return the dimensions of the dataset.
+     *
+     * @see Dimension
+     * @see <a href="https://json-stat.org/format/#dimension">json-stat.org/format/#dimension</a>
+     */
+    @JsonIgnore
+    public Map<String, Dimension> getDimension(String... filter) {
+        return getDimension(Arrays.asList(filter));
+    }
+
+    /**
+     * Return the dimensions of the dataset.
+     *
+     * @see Dimension
+     * @see <a href="https://json-stat.org/format/#dimension">json-stat.org/format/#dimension</a>
+     */
+    @JsonIgnore
+    public Map<String, Dimension> getDimension(Collection<String> filter) {
+        filter = firstNonNull(filter, Collections.emptyList());
+        if (filter.isEmpty())
+            return Collections.emptyMap();
+
+        return Maps.filterKeys(
+                dimension,
+                Predicates.in(filter)
+        );
+    }
+
+    /**
      * Utility method that returns a {@link Iterable} of {@link List}s going through the data set
      * row by row and cell by cell, in the order defined by the dimensions.
      */
     @JsonIgnore
     public Iterable<List<Number>> getRows() {
+        getRowMap();
         return Iterables.paddedPartition(this.value, this.id.size());
+    }
+
+    /**
+     * Returns an {@link Iterator} that returns all the dimensions combinations in row major order.
+     * <p>
+     * <b>Warning:</b> the returned iterator will loop indefinitely so make sure to include another stop
+     * condition..
+     */
+    Iterator<List<String>> getDimensionIndexIterator(Collection<String> filter) {
+
+        List<Dimension> dimensions =
+                Lists.newArrayList(getDimension(filter).values()
+                );
+
+        final List<List<String>> dimensionsList = dimensions.stream()
+                .map(Dimension::getCategory)
+                .map(Dimension.Category::getIndex)
+                .map(ImmutableCollection::asList)
+                .collect(Collectors.toList());
+
+        // Transform into cycling iterators.
+        return Iterators.cycle(Lists.cartesianProduct(dimensionsList));
+
+    }
+
+
+    /**
+     * Utility method that returns an {@link Map} with the dimension values as a {@link List<String>} and
+     * the metric values as a {@link List<Number>}.
+     */
+    @JsonIgnore
+    public Map<List<String>, List<Number>> getRowMap() {
+
+        ImmutableMap.Builder<List<String>, List<Number>> result = ImmutableMap.builder();
+
+        Iterator<List<String>> dimensionIndexIterator = getDimensionIndexIterator(this.dimension.keySet());
+        for (Number number : this.value) {
+            // TODO: Handle several metrics?
+
+            List<String> dimensionValues = dimensionIndexIterator.next();
+            List<Number> values = Arrays.asList(number);
+
+            result.put(dimensionValues, values);
+        }
+
+        return result.build();
+
     }
 
     /**
@@ -273,7 +352,7 @@ public class Dataset extends JsonStat {
          * @param values the values in row-major order
          * @return a built data set
          */
-        public Builder withValues(java.util.Collection<Number> values) {
+        public Builder withValues(Collection<Number> values) {
             checkNotNull(values);
 
             if (values.isEmpty())

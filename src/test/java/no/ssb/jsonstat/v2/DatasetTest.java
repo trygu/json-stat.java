@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import com.google.common.collect.*;
 import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -171,6 +168,82 @@ public class DatasetTest {
         Dataset build = builder.withValues(collect).build();
 
         assertThat(build).isNotNull();
+
+    }
+
+    @Test
+    public void testRowMajorDimensionValues() throws Exception {
+
+        Dataset dataset = Dataset.create("test")
+                .withDimension(
+                        Dimension.create("A")
+                                .withCategories("A1", "A2", "A3"))
+                .withDimension(Dimension.create("B")
+                        .withCategories("B1", "B2"))
+                .withDimension(Dimension.create("C")
+                        .withCategories("C1", "C2", "C3", "C4")
+                ).build();
+
+        Iterable<List<String>> limit = Lists.newArrayList(
+                Iterators.limit(
+                        dataset.getDimensionIndexIterator(Arrays.asList("A", "B", "C")), 25
+                )
+        );
+
+        assertThat(limit).containsExactly(
+                Arrays.asList("A1", "B1", "C1"),
+                Arrays.asList("A1", "B1", "C2"),
+                Arrays.asList("A1", "B1", "C3"),
+                Arrays.asList("A1", "B1", "C4"),
+
+                Arrays.asList("A1", "B2", "C1"),
+                Arrays.asList("A1", "B2", "C2"),
+                Arrays.asList("A1", "B2", "C3"),
+                Arrays.asList("A1", "B2", "C4"),
+
+                Arrays.asList("A2", "B1", "C1"),
+                Arrays.asList("A2", "B1", "C2"),
+                Arrays.asList("A2", "B1", "C3"),
+                Arrays.asList("A2", "B1", "C4"),
+
+                Arrays.asList("A2", "B2", "C1"),
+                Arrays.asList("A2", "B2", "C2"),
+                Arrays.asList("A2", "B2", "C3"),
+                Arrays.asList("A2", "B2", "C4"),
+
+                Arrays.asList("A3", "B1", "C1"),
+                Arrays.asList("A3", "B1", "C2"),
+                Arrays.asList("A3", "B1", "C3"),
+                Arrays.asList("A3", "B1", "C4"),
+
+                Arrays.asList("A3", "B2", "C1"),
+                Arrays.asList("A3", "B2", "C2"),
+                Arrays.asList("A3", "B2", "C3"),
+                Arrays.asList("A3", "B2", "C4"),
+
+                // And looping!
+                Arrays.asList("A1", "B1", "C1")
+        );
+
+        limit = Lists.newArrayList(
+                Iterators.limit(
+                        dataset.getDimensionIndexIterator(Arrays.asList("A", "B")), 7
+                )
+        );
+
+        assertThat(limit).containsExactly(
+                Arrays.asList("A1", "B1"),
+                Arrays.asList("A1", "B2"),
+
+                Arrays.asList("A2", "B1"),
+                Arrays.asList("A2", "B2"),
+
+                Arrays.asList("A3", "B1"),
+                Arrays.asList("A3", "B2"),
+
+                // And looping!
+                Arrays.asList("A1", "B1")
+        );
 
     }
 
