@@ -152,8 +152,7 @@ public class Dataset extends JsonStat {
      */
     @JsonIgnore
     public Map<String, Dimension> getDimension(Collection<String> filter) {
-        filter = firstNonNull(filter, Collections.emptyList());
-        if (filter.isEmpty())
+        if (firstNonNull(filter, Collections.emptySet()).isEmpty())
             return Collections.emptyMap();
 
         return Maps.filterKeys(
