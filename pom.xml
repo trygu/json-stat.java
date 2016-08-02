@@ -11,6 +11,11 @@
     <description>Json stat implementation in Java</description>
     <url>https://github.com/statisticsnorway/json-stat.java</url>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <oss.skipsign>true</oss.skipsign>
+    </properties>
+
     <developers>
         <developer>
             <name>Hadrien Kohl</name>
@@ -108,10 +113,6 @@
 
     </dependencies>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <build>
 
         <plugins>
@@ -176,10 +177,12 @@
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
-                        <phase>verify</phase>
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+                            <skip>${oss.skipsign}</skip>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
