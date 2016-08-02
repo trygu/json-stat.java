@@ -33,7 +33,7 @@ public class Dimension extends JsonStat {
 
     public Optional<String> getLabel() {
         // "label content should be written in lowercase except when it is a dataset label"
-        return Optional.ofNullable(label).map(String::toUpperCase);
+        return Optional.ofNullable(label).map(String::toLowerCase);
     }
 
     public void setLabel(String label) {
@@ -44,7 +44,7 @@ public class Dimension extends JsonStat {
         return category;
     }
 
-    enum Roles {
+    public enum Roles {
         TIME, GEO, METRIC
     }
 
@@ -209,10 +209,9 @@ public class Dimension extends JsonStat {
         }
 
         /**
-         * Set the values of the dimension in index/label form.
+         * Set the values of the dimension builder in index/label form.
          *
          * @param indexedLabels
-         * @return
          */
         public Builder withIndexedLabels(ImmutableMap<String, String> indexedLabels) {
             // TODO: index seems unnecessary, we could use index.keySet()
