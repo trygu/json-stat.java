@@ -9,6 +9,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import no.ssb.jsonstat.v2.Dataset;
+import no.ssb.jsonstat.v2.DatasetBuildable;
+import no.ssb.jsonstat.v2.DatasetBuilder;
 import no.ssb.jsonstat.v2.Dimension;
 
 import java.io.IOException;
@@ -27,7 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * TODO: Use builder instead.
  * TODO: Check {@link com.fasterxml.jackson.databind.deser.ResolvableDeserializer}
  */
-public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
+public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
 
     static final TypeReference<List<Number>> VALUES_LIST = new TypeReference<List<Number>>() {
     };
@@ -41,11 +43,11 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
     };
 
     public DatasetDeserializer() {
-        super(Dataset.Builder.class);
+        super(DatasetBuildable.class);
     }
 
     @Override
-    public Dataset.Builder deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    public DatasetBuildable deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         if (p.getCurrentToken() == JsonToken.START_OBJECT) {
             p.nextToken();
         }
@@ -54,8 +56,10 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
         List<Integer> sizes = Collections.emptyList();
         Multimap<String, String> roles = ArrayListMultimap.create();
         Map<String, Dimension.Builder> dims = Collections.emptyMap();
+        List<Number> values = Collections.emptyList();
 
-        Dataset.Builder builder = Dataset.create();
+
+        DatasetBuilder builder = Dataset.create();
         while (p.nextValue() != JsonToken.END_OBJECT) {
             switch (p.getCurrentName()) {
                 case "label":
@@ -67,19 +71,18 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
                 case "href":
                     break;
                 case "updated":
+                    // TODO: Support http://www.ecma-international.org/ecma-262/6.0/index.html#sec-date-time-string-format
                     builder.updatedAt(
                             p.readValueAs(Instant.class)
                     );
                     break;
                 case "value":
-                    List<Number> values = p.readValueAs(
+                    values = p.readValueAs(
                             VALUES_LIST
                     );
-                    builder.withValues(values);
                     break;
                 case "dimension":
                     dims = p.readValueAs(DIMENSION_MAP);
-                    //builder.withDimensions(dims.values());
                     break;
                 case "id":
                     ids = p.readValueAs(ID_SET);
@@ -119,15 +122,8 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
         checkArgument(ids.size() == dims.size(),
                 "dimension and size did not match"
         );
-        for (String dimensionId : ids) {
-            checkArgument(
-                    dims.containsKey(dimensionId),
-                    "the dimension with id {} did not exist", dimensionId
-            );
-            builder.withDimension(dims.get(dimensionId));
-        }
 
-        return builder;
+        return builder.withDimensions(dims.values()).withFlatValues(values);
     }
 
 }
