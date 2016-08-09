@@ -15,6 +15,9 @@ import no.ssb.jsonstat.v2.Dimension;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +45,27 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
     static final TypeReference<ArrayListMultimap<String, String>> ROLE_MULTIMAP = new TypeReference<ArrayListMultimap<String, String>>() {
     };
 
+    static final DateTimeFormatter ECMA_FORMATTER = new DateTimeFormatterBuilder()
+            .appendPattern("uuuu").optionalStart().appendPattern("-MM").optionalStart().appendPattern("-dd")
+            .optionalEnd()
+            .optionalEnd()
+            .optionalStart().appendLiteral("T").appendPattern("HH:mm").optionalStart().appendPattern(":ss")
+            .optionalStart().appendPattern(".SSS").optionalEnd().optionalEnd().optionalStart()
+            .appendPattern("z").optionalEnd().optionalEnd()
+            .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
+            .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 1)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+            .parseDefaulting(ChronoField.MILLI_OF_SECOND, 0)
+            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0).toFormatter();
+
     public DatasetDeserializer() {
         super(DatasetBuildable.class);
+    }
+
+    Instant parseEcmaDate(String value) {
+        return Instant.from(ECMA_FORMATTER.parse(value));
     }
 
     @Override
@@ -71,10 +93,8 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
                 case "href":
                     break;
                 case "updated":
-                    // TODO: Support http://www.ecma-international.org/ecma-262/6.0/index.html#sec-date-time-string-format
-                    builder.updatedAt(
-                            p.readValueAs(Instant.class)
-                    );
+                    Instant updated = parseEcmaDate(_parseString(p, ctxt));
+                    builder.updatedAt(updated);
                     break;
                 case "value":
                     values = p.readValueAs(
