@@ -192,8 +192,6 @@ public abstract class Dataset extends JsonStat {
                 String source,
                 Instant updated) {
 
-            // TODO: Use class hierarchy -> build() returns object and sub classes augment it.
-
             // Build the dimensions.
             this.dimensions = dimensions.stream()
                     .collect(MoreCollectors.toImmutableMap(
@@ -257,7 +255,7 @@ public abstract class Dataset extends JsonStat {
                                 .map(metric -> {
                                     Integer metricIndex = Math.toIntExact(metric.getIndex());
                                     return new AbstractMap.SimpleEntry<>(
-                                            dimensionIndex * valueSize + metricIndex, metric.getValue() != null ? metric.getValue() : 0);
+                                            dimensionIndex * valueSize + metricIndex, metric.getValue());
                                 });
                     });
 
@@ -277,7 +275,7 @@ public abstract class Dataset extends JsonStat {
 
         @Override
         public ValuesBuilder addTuple(List<String> dimensions, List<Number> values) {
-            // TODO: Return another Builder.
+            // TODO:
             return this;
         }
 
