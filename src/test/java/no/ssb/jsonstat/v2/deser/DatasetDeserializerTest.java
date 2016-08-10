@@ -1,8 +1,11 @@
 package no.ssb.jsonstat.v2.deser;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.assertj.core.api.SoftAssertions;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -50,5 +53,37 @@ public class DatasetDeserializerTest {
     public void testParseUpdated(String date) throws Exception {
         // Only check that we handle for now.
         ds.parseEcmaDate(date);
+    }
+
+    @Test
+    public void testParseValues() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        JsonParser mapParser = mapper.getFactory().createParser("" +
+                "{ " +
+                "  \"0\": 10," +
+                "  \"1\": 20," +
+                "  \"3\": 30," +
+                "  \"4\": 40}"
+        );
+        mapParser.nextValue();
+
+        JsonParser arrayParser = mapper.getFactory().createParser(
+                "[ 10, 20, null, 30, 40 ]"
+        );
+        arrayParser.nextValue();
+
+        List<Number> fromMap = ds.parseValues(mapParser, null);
+        List<Number> fromArray = ds.parseValues(arrayParser, null);
+        List<Number> expected = Lists.newArrayList(
+                10, 20, null, 30, 40
+        );
+
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(fromMap).as("deserialize values from map").isEqualTo(expected);
+        softly.assertThat(fromArray).as("deserialize values from array").isEqualTo(expected);
+        softly.assertAll();
+
+
     }
 }

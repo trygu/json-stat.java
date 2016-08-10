@@ -18,10 +18,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -43,6 +40,8 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
     static final TypeReference<List<Integer>> SIZE_LIST = new TypeReference<List<Integer>>() {
     };
     static final TypeReference<ArrayListMultimap<String, String>> ROLE_MULTIMAP = new TypeReference<ArrayListMultimap<String, String>>() {
+    };
+    static final TypeReference<?> VALUES_MAP = new TypeReference<TreeMap<Integer, Number>>() {
     };
 
     static final DateTimeFormatter ECMA_FORMATTER = new DateTimeFormatterBuilder()
@@ -97,9 +96,7 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
                     builder.updatedAt(updated);
                     break;
                 case "value":
-                    values = p.readValueAs(
-                            VALUES_LIST
-                    );
+                    values = parseValues(p, ctxt);
                     break;
                 case "dimension":
                     dims = p.readValueAs(DIMENSION_MAP);
@@ -144,6 +141,35 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
         );
 
         return builder.withDimensions(dims.values()).withFlatValues(values);
+    }
+
+    List<Number> parseValues(JsonParser p, DeserializationContext ctxt) throws IOException {
+        List<Number> result = Collections.emptyList();
+        switch (p.getCurrentToken()) {
+            case START_OBJECT:
+                SortedMap<Integer, Number> map = p.readValueAs(VALUES_MAP);
+                result = new AbstractList<Number>() {
+
+                    @Override
+                    public int size() {
+                        return map.lastKey() + 1;
+                    }
+
+                    @Override
+                    public Number get(int index) {
+                        return map.get(index);
+                    }
+                };
+                break;
+            case START_ARRAY:
+                result = p.readValueAs(VALUES_LIST);
+                break;
+            default:
+                ctxt.handleUnexpectedToken(
+                        this._valueClass, p.getCurrentToken(), p, "msg"
+                );
+        }
+        return result;
     }
 
 }
