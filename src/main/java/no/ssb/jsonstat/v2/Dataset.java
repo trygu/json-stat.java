@@ -38,6 +38,7 @@ public class Dataset extends JsonStat {
     private Instant updated = null;
     private Map<String, Dimension> dimension;
     private List<Number> value;
+    private ImmutableMap<String, String> extension;
 
     protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
         super(Version.TWO, Class.DATASET);
@@ -83,6 +84,10 @@ public class Dataset extends JsonStat {
         // Cannot be empty. Should retain order.
         // Should be same order and size than id.
         return size;
+    }
+
+    public Optional<ImmutableMap<String, String>> getExtension() {
+      return Optional.ofNullable(extension);
     }
 
     /**
@@ -280,6 +285,7 @@ public class Dataset extends JsonStat {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
         private final ImmutableList.Builder<Optional<Number>> values;
+        private final ImmutableMap.Builder<String, String> extension;
         private String label;
         private String source;
         private Instant update;
@@ -287,6 +293,7 @@ public class Dataset extends JsonStat {
         private Builder() {
             this.dimensionBuilders = ImmutableSet.builder();
             this.values = ImmutableList.builder();
+            this.extension = ImmutableMap.builder();
         }
 
         public Builder withLabel(final String label) {
@@ -301,6 +308,11 @@ public class Dataset extends JsonStat {
 
         public Builder updatedAt(final Instant update) {
             this.update = checkNotNull(update, "updated was null");
+            return this;
+        }
+
+        public Builder withExtension(ImmutableMap<String, String> extension) {
+            this.extension.putAll(extension);
             return this;
         }
 
@@ -338,6 +350,7 @@ public class Dataset extends JsonStat {
             dataset.updated = update;
             dataset.value = values.build().stream().map(number -> number.isPresent() ? number.get() : null).collect(Collectors.toList());
             dataset.dimension = dimensionMap;
+            dataset.extension = this.extension.build();
 
             return dataset;
         }
