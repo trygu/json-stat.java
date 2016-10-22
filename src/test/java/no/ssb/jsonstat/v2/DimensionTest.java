@@ -3,6 +3,7 @@ package no.ssb.jsonstat.v2;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
@@ -28,8 +29,17 @@ public class DimensionTest {
 
         Dimension dimension = Dimension.create("test")
                 .withIndex(ImmutableSet.of("index 0", "index 1")).build();
-
         String value = mapper.writeValueAsString(dimension);
+
+        assertThat(value).isNotNull();
+
+        dimension = Dimension.create("test")
+                .withIndexedLabels(ImmutableMap.of(
+                        "test", "test label",
+                        "test2", "test label2"
+                )).build();
+        value = mapper.writeValueAsString(dimension);
+
         assertThat(value).isNotNull();
     }
 
@@ -37,5 +47,4 @@ public class DimensionTest {
     public void testDeserialize() throws Exception {
 
     }
-
 }
