@@ -38,7 +38,7 @@ public class Dataset extends JsonStat {
     private Instant updated = null;
     private Map<String, Dimension> dimension;
     private List<Number> value;
-    private ImmutableMap extension;
+    private ImmutableMap extension = null;
 
     protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
         super(Version.TWO, Class.DATASET);
@@ -349,7 +349,10 @@ public class Dataset extends JsonStat {
             dataset.updated = update;
             dataset.value = values.build().stream().map(number -> number.isPresent() ? number.get() : null).collect(Collectors.toList());
             dataset.dimension = dimensionMap;
-            dataset.extension = this.extension.build();
+
+            // ImmutableMap.Builder has no way to check the size of the map to be built.
+            ImmutableMap builtExtension = this.extension.build();
+            dataset.extension = (builtExtension.size() > 0) ? builtExtension : null;
 
             return dataset;
         }
