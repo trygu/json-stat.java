@@ -38,7 +38,7 @@ public class Dataset extends JsonStat {
     private Instant updated = null;
     private Map<String, Dimension> dimension;
     private List<Number> value;
-    private ImmutableMap<String, String> extension;
+    private ImmutableMap extension;
 
     protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
         super(Version.TWO, Class.DATASET);
@@ -86,7 +86,7 @@ public class Dataset extends JsonStat {
         return size;
     }
 
-    public Optional<ImmutableMap<String, String>> getExtension() {
+    public Optional<ImmutableMap> getExtension() {
       return Optional.ofNullable(extension);
     }
 
@@ -285,7 +285,7 @@ public class Dataset extends JsonStat {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
         private final ImmutableList.Builder<Optional<Number>> values;
-        private final ImmutableMap.Builder<String, String> extension;
+        private final ImmutableMap.Builder extension;
         private String label;
         private String source;
         private Instant update;
@@ -311,14 +311,13 @@ public class Dataset extends JsonStat {
             return this;
         }
 
-        public Builder withExtension(ImmutableMap<String, String> extension) {
+        public Builder withExtension(ImmutableMap extension) {
             this.extension.putAll(extension);
             return this;
         }
 
         public Builder withDimension(Dimension.Builder dimension) {
             checkNotNull(dimension, "the dimension builder was null");
-
 
             if (dimensionBuilders.build().contains(dimension))
                 throw new DuplicateDimensionException(
