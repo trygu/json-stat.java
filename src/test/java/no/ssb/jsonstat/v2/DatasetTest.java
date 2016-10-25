@@ -142,7 +142,7 @@ public class DatasetTest {
                         "T", "population 15 years old and over"
                 )));
 
-        builder.withExtensionReference(ImmutableMap.of("arbitrary_field", "arbitrary_value"));
+        builder.withExtension(ImmutableMap.of("arbitrary_field", "arbitrary_value"));
 
         // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
         // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
