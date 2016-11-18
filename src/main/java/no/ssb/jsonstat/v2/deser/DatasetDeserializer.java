@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -90,10 +91,12 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
         Map<String, Dimension.Builder> dims = Collections.emptyMap();
         List<Number> values = Collections.emptyList();
 
-        Optional<String> version = Optional.empty();
-        Optional<String> clazz = Optional.empty();
 
         DatasetBuilder builder = Dataset.create();
+        Optional<String> version = Optional.empty();
+        Optional<String> clazz = Optional.empty();
+        Optional<ObjectNode> extension = Optional.empty();
+
         while (p.nextValue() != JsonToken.END_OBJECT) {
             switch (p.getCurrentName()) {
                 case "label":
@@ -146,6 +149,11 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
                 case "role":
                     roles = p.readValueAs(ROLE_MULTIMAP);
                     break;
+                case "extension":
+                    extension = Optional.of(ctxt.readValue(
+                            p, ObjectNode.class
+                    ));
+                    break;
                 case "link":
                 case "status":
                     // TODO
@@ -188,6 +196,10 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
         checkArgument(ids.size() == dims.size(),
                 "dimension and size did not match"
         );
+
+        if (extension.isPresent()) {
+            builder.withExtension(extension.get());
+        }
 
         return builder.withDimensions(dims.values()).withFlatValues(values);
     }

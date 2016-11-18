@@ -2,6 +2,8 @@ package no.ssb.jsonstat.v2;
 
 import com.codepoetics.protonpack.StreamUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
@@ -34,6 +36,7 @@ public abstract class Dataset extends JsonStat {
     private final String source;
     private final Instant updated;
     // TODO: Support for status.
+
 
     protected Dataset(String label, String source, Instant updated) {
         super(Version.TWO, Class.DATASET);
@@ -82,6 +85,15 @@ public abstract class Dataset extends JsonStat {
                 .map(AbstractCollection::size)
                 .collect(MoreCollectors.toImmutableList());
     }
+
+    /**
+     * Return the extension value of this dataset.
+     * <p>
+     * If the dataset was deserialized, the return value will be an {@link ObjectNode}.
+     *
+     * @see <a href="https://json-stat.org/format/#size">json-stat.org/format/#extension</a>
+     */
+    abstract Object getExtension();
 
     /**
      * Return the updated time of the dataset.
@@ -186,11 +198,14 @@ public abstract class Dataset extends JsonStat {
         private final Instant updated;
         private final int valueSize;
 
+        private Object extension;
+
         ValuesBuilder(
                 ImmutableSet<Dimension.Builder> dimensions,
                 String label,
                 String source,
-                Instant updated) {
+                Instant updated,
+                Object extension) {
 
             // Build the dimensions.
             this.dimensions = dimensions.stream()
@@ -202,6 +217,7 @@ public abstract class Dataset extends JsonStat {
             this.label = label;
             this.source = source;
             this.updated = updated;
+            this.extension = extension;
 
             indexes = this.dimensions.values().stream()
                     .map(Dimension::getCategory)
@@ -289,6 +305,11 @@ public abstract class Dataset extends JsonStat {
                     return new Dataset(label, source, updated) {
 
                         @Override
+                        Object getExtension() {
+                            return extension;
+                        }
+
+                        @Override
                         public Map<Integer, Number> getValue() {
                             return values;
                         }
@@ -366,6 +387,8 @@ public abstract class Dataset extends JsonStat {
     private static class Builder implements DatasetBuilder {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
+        private final ImmutableList.Builder<Optional<Number>> values;
+        private Object extension;
 
         private String label;
         private String source;
@@ -373,6 +396,7 @@ public abstract class Dataset extends JsonStat {
 
         private Builder() {
             this.dimensionBuilders = ImmutableSet.builder();
+            this.values = ImmutableList.builder();
         }
 
         @Override
@@ -406,6 +430,29 @@ public abstract class Dataset extends JsonStat {
             return this;
         }
 
+        /**
+         * Assign a value to the extension.
+         * <p>
+         * The extension must be serializable by jackson.
+         */
+        @Override
+        public Builder withExtension(Object extension) {
+            this.extension = checkNotNull(extension);
+            return this;
+        }
+
+        public Builder withDimension(Dimension.Builder dimension) {
+            checkNotNull(dimension, "the dimension builder was null");
+
+            if (dimensionBuilders.build().contains(dimension))
+                throw new DuplicateDimensionException(
+                        String.format("the builder already contains the dimension %s", dimension.toString())
+                );
+
+            dimensionBuilders.add(dimension);
+            return this;
+        }
+
         @Override
         public DatasetValueBuilder withDimensions(Iterable<Dimension.Builder> values) {
             checkNotNull(values, "dimension builder list was null");
@@ -420,7 +467,7 @@ public abstract class Dataset extends JsonStat {
         }
 
         ValuesBuilder toValueBuilder() {
-            return new ValuesBuilder(this.dimensionBuilders.build(), this.label, this.source, this.update);
+            return new ValuesBuilder(this.dimensionBuilders.build(), this.label, this.source, this.update, this.extension);
         }
 
     }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -68,6 +70,35 @@ public class DatasetDeserializationTest {
         for (Map.Entry<List<String>, List<Number>> listListEntry : listListMap.entrySet()) {
             System.out.println(listListEntry);
         }
+
+    }
+
+    @Test
+    public void testExtension() throws Exception {
+
+        URL galicia = Resources.getResource(getClass(), "./galicia.json");
+
+        ObjectNode node = mapper.readValue(new BufferedInputStream(
+                galicia.openStream()
+        ), ObjectNode.class);
+
+        assertThat(node).isNotNull();
+
+        // Manually add extension
+        node.with("extension")
+                .put("number", 10)
+                .putArray("array")
+                    .add("string");
+
+        Dataset jsonStat = mapper.readValue(
+                mapper.writeValueAsBytes(node),
+                DatasetBuildable.class
+        ).build();
+
+        assertThat(jsonStat).isNotNull();
+        assertThat(jsonStat.getExtension())
+                .isNotNull()
+                .isInstanceOf(ObjectNode.class);
 
     }
 

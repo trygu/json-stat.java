@@ -13,9 +13,8 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.*;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -122,6 +121,8 @@ public class DatasetTest {
                 Dimension.create("arrival").withMetricRole(),
                 Dimension.create("departure").withRole(Dimension.Roles.METRIC)
         );
+
+        builder.withExtension(ImmutableMap.<String, String>of("arbitrary_field", "arbitrary_value"));
 
         // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
         // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
@@ -269,9 +270,58 @@ public class DatasetTest {
     @Test
     public void testSerialize() throws Exception {
 
-        // TODO: Find a way to implement the child that is fluent.
+        DatasetBuilder builder = Dataset.create().withLabel("");
+        builder.withSource("");
+        builder.updatedAt(Instant.now());
 
-        Dataset dataset = null;
+        Dimension.Builder dimension = Dimension.create("year")
+                .withRole(Dimension.Roles.TIME)
+                .withCategories(ImmutableSet.of("2003", "2004", "2005"));
+
+        builder.withExtension(ImmutableMap.of("arbitrary_field", "arbitrary_value"));
+
+        // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
+        // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
+        // TODO: express hierarchy with the builder? Check how ES did that with the query builders.
+        // example: builder.withDimension(Dimension.create("location")
+        //        .withGeoRole());
+
+        // Supplier.
+        List<Number> collect = cartesianProduct(
+                ImmutableList.of("2003", "2004", "2005"),
+                ImmutableList.of("may", "june", "july"),
+                ImmutableList.of("30", "31", "32"),
+                ImmutableMap.of(
+                        "A", "active population",
+                        "E", "employment",
+                        "U", "unemployment",
+                        "I", "inactive population",
+                        "T", "population 15 years old and over"
+                ).keySet().asList()
+        ).stream().map(dimensions -> dimensions.hashCode()).collect(Collectors.toList());
+
+        // Some extension.
+        List<Map<String, List<Instant>>> extension = Collections.singletonList(
+                ImmutableMap.of(
+                        "now", Collections.singletonList(Instant.now())
+                )
+        );
+
+        Dataset dataset = builder.withExtension(extension).withDimensions(
+                dimension,
+                Dimension.create("month").withRole(Dimension.Roles.TIME)
+                        .withCategories(ImmutableSet.of("may", "june", "july")),
+                Dimension.create("week").withTimeRole()
+                        .withLabels(ImmutableList.of("30", "31", "32")),
+                Dimension.create("population")
+                        .withIndexedLabels(ImmutableMap.of(
+                                "A", "active population",
+                                "E", "employment",
+                                "U", "unemployment",
+                                "I", "inactive population",
+                                "T", "population 15 years old and over"
+                        ))
+        ).withFlatValues(collect).build();
 
         String value = mapper.writeValueAsString(dataset);
 
