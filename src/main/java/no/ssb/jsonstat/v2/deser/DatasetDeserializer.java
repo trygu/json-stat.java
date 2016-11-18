@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -13,10 +14,7 @@ import no.ssb.jsonstat.v2.Dimension;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -55,6 +53,8 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
         Multimap<String, String> roles = ArrayListMultimap.create();
         Map<String, Dimension.Builder> dims = Collections.emptyMap();
 
+        Optional<ObjectNode> extension = Optional.empty();
+
         Dataset.Builder builder = Dataset.create();
         while (p.nextValue() != JsonToken.END_OBJECT) {
             switch (p.getCurrentName()) {
@@ -89,6 +89,11 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
                     break;
                 case "role":
                     roles = p.readValueAs(ROLE_MULTIMAP);
+                    break;
+                case "extension":
+                    extension = Optional.of(ctxt.readValue(
+                            p, ObjectNode.class
+                    ));
                     break;
                 case "link":
                 case "version":
@@ -125,6 +130,10 @@ public class DatasetDeserializer extends StdDeserializer<Dataset.Builder> {
                     "the dimension with id {} did not exist", dimensionId
             );
             builder.withDimension(dims.get(dimensionId));
+        }
+
+        if (extension.isPresent()) {
+            builder.withExtension(extension.get());
         }
 
         return builder;

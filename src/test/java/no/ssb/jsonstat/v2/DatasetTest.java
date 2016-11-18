@@ -10,10 +10,8 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.*;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -170,6 +168,7 @@ public class DatasetTest {
         Dataset build = builder.withValues(collect).build();
 
         assertThat(build).isNotNull();
+
     }
 
     @Test
@@ -389,14 +388,63 @@ public class DatasetTest {
     @Test
     public void testSerialize() throws Exception {
 
-        // TODO: Find a way to implement the child that is fluent.
+        Dataset.Builder builder = Dataset.create().withLabel("");
+        builder.withSource("");
+        builder.updatedAt(Instant.now());
 
-        Dataset dataset = new Dataset(ImmutableSet.of(
-                "a", "b"
-        ), ImmutableList.of(
-                1, 1
-        ));
+        Dimension.Builder dimension = Dimension.create("year")
+                .withRole(Dimension.Roles.TIME)
+                .withCategories(ImmutableSet.of("2003", "2004", "2005"));
+        builder.withDimension(dimension);
 
+
+        builder.withDimension(Dimension.create("month").withRole(Dimension.Roles.TIME)
+                .withCategories(ImmutableSet.of("may", "june", "july")));
+
+        builder.withDimension(Dimension.create("week").withTimeRole()
+                .withLabels(ImmutableList.of("30", "31", "32")));
+
+        builder.withDimension(Dimension.create("population")
+                .withIndexedLabels(ImmutableMap.of(
+                        "A", "active population",
+                        "E", "employment",
+                        "U", "unemployment",
+                        "I", "inactive population",
+                        "T", "population 15 years old and over"
+                )));
+
+        builder.withExtension(ImmutableMap.of("arbitrary_field", "arbitrary_value"));
+
+        // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
+        // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
+        // TODO: express hierarchy with the builder? Check how ES did that with the query builders.
+        // example: builder.withDimension(Dimension.create("location")
+        //        .withGeoRole());
+
+        builder.withDimension(Dimension.create("arrival").withMetricRole());
+        builder.withDimension(Dimension.create("departure").withRole(Dimension.Roles.METRIC));
+
+        // Supplier.
+        List<Number> collect = cartesianProduct(
+                ImmutableList.of("2003", "2004", "2005"),
+                ImmutableList.of("may", "june", "july"),
+                ImmutableList.of("30", "31", "32"),
+                ImmutableMap.of(
+                        "A", "active population",
+                        "E", "employment",
+                        "U", "unemployment",
+                        "I", "inactive population",
+                        "T", "population 15 years old and over"
+                ).keySet().asList()
+        ).stream().map(dimensions -> dimensions.hashCode()).collect(Collectors.toList());
+
+        // Some extension.
+        List<Map<String, List<Instant>>> extension = Collections.singletonList(
+                ImmutableMap.of(
+                        "now", Collections.singletonList(Instant.now())
+                )
+        );
+        Dataset dataset = builder.withValues(collect).withExtension(extension).build();
         String value = mapper.writeValueAsString(dataset);
 
         assertThat(value).isNotNull();

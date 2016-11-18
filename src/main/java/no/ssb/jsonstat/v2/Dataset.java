@@ -1,6 +1,8 @@
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
@@ -38,7 +40,8 @@ public class Dataset extends JsonStat {
     private Instant updated = null;
     private Map<String, Dimension> dimension;
     private List<Number> value;
-    private ImmutableMap extension = null;
+
+    private Object extension = null;
 
     protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
         super(Version.TWO, Class.DATASET);
@@ -86,8 +89,15 @@ public class Dataset extends JsonStat {
         return size;
     }
 
-    public Optional<ImmutableMap> getExtension() {
-      return Optional.ofNullable(extension);
+    /**
+     * Return the extension value of this dataset.
+     * <p>
+     * If the dataset was deserialized, the return value will be an {@link ObjectNode}.
+     *
+     * @see <a href="https://json-stat.org/format/#size">json-stat.org/format/#extension</a>
+     */
+    public Object getExtension() {
+        return extension;
     }
 
     /**
@@ -285,7 +295,7 @@ public class Dataset extends JsonStat {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
         private final ImmutableList.Builder<Optional<Number>> values;
-        private final ImmutableMap.Builder extension;
+        private Object extension;
         private String label;
         private String source;
         private Instant update;
@@ -293,7 +303,6 @@ public class Dataset extends JsonStat {
         private Builder() {
             this.dimensionBuilders = ImmutableSet.builder();
             this.values = ImmutableList.builder();
-            this.extension = ImmutableMap.builder();
         }
 
         public Builder withLabel(final String label) {
@@ -311,8 +320,13 @@ public class Dataset extends JsonStat {
             return this;
         }
 
-        public Builder withExtension(ImmutableMap extension) {
-            this.extension.putAll(extension);
+        /**
+         * Assign a value to the extension.
+         * <p>
+         * The extension must be serializable by jackson.
+         */
+        public Builder withExtension(Object extension) {
+            this.extension = checkNotNull(extension);
             return this;
         }
 
@@ -349,10 +363,7 @@ public class Dataset extends JsonStat {
             dataset.updated = update;
             dataset.value = values.build().stream().map(number -> number.isPresent() ? number.get() : null).collect(Collectors.toList());
             dataset.dimension = dimensionMap;
-
-            // ImmutableMap.Builder has no way to check the size of the map to be built.
-            ImmutableMap builtExtension = this.extension.build();
-            dataset.extension = (builtExtension.size() > 0) ? builtExtension : null;
+            dataset.extension = extension;
 
             return dataset;
         }
