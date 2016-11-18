@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import no.ssb.jsonstat.v2.Dataset;
 import no.ssb.jsonstat.v2.DatasetBuildable;
@@ -68,6 +69,16 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
     }
 
     @Override
+    public Collection<Object> getKnownPropertyNames() {
+        return Arrays.asList(
+                "class", "version", "label",
+                "source", "updated", "id",
+                "size", "dimension", "value",
+                "link", "status", "extension"
+        );
+    }
+
+    @Override
     public DatasetBuildable deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         if (p.getCurrentToken() == JsonToken.START_OBJECT) {
             p.nextToken();
@@ -79,6 +90,8 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
         Map<String, Dimension.Builder> dims = Collections.emptyMap();
         List<Number> values = Collections.emptyList();
 
+        Optional<String> version = Optional.empty();
+        Optional<String> clazz = Optional.empty();
 
         DatasetBuilder builder = Dataset.create();
         while (p.nextValue() != JsonToken.END_OBJECT) {
@@ -111,10 +124,23 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
                     roles = p.readValueAs(ROLE_MULTIMAP);
                     break;
                 case "link":
-                case "version":
-                case "class":
-                default:
+                case "status":
+                    // TODO
                     p.skipChildren();
+                    break;
+                case "version":
+                    version = Optional.of(_parseString(p, ctxt));
+                    break;
+                case "class":
+                    // TODO
+                    clazz = Optional.of(_parseString(p, ctxt));
+                    break;
+                default:
+                    boolean handled = ctxt.handleUnknownProperty(
+                            p, this, Dimension.Builder.class, p.getCurrentName()
+                    );
+                    if (!handled)
+                        p.skipChildren();
                     break;
             }
         }
