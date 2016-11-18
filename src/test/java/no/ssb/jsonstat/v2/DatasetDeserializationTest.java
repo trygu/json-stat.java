@@ -1,5 +1,8 @@
 package no.ssb.jsonstat.v2;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -38,6 +41,34 @@ public class DatasetDeserializationTest {
         module.addDeserializer(DatasetBuildable.class, new DatasetDeserializer());
         module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
         mapper.registerModule(module);
+    }
+
+    @Test
+    public void testSsbApi() throws Exception {
+
+        URL ssb = Resources.getResource(getClass(), "./ssb-api.json");
+        JsonParser parser = mapper.getFactory().createParser(new BufferedInputStream(
+                ssb.openStream()
+        ));
+        // v1 is in a map
+        TypeReference<Map<String, DatasetBuildable>> ref = new TypeReference<Map<String, DatasetBuildable>>() {
+            // just a ref.
+        };
+
+        Map<String, DatasetBuildable> o = mapper.readValue(
+                parser,
+                ref
+        );
+
+        DatasetBuildable next = o.values().iterator().next();
+
+        Dataset build = next.build();
+
+        Map<List<String>, List<Number>> listListMap = build.asMap();
+        for (Map.Entry<List<String>, List<Number>> listListEntry : listListMap.entrySet()) {
+            System.out.println(listListEntry);
+        }
+
     }
 
     @Test
