@@ -1,10 +1,10 @@
-Implementation of JSON Stat in Java - http://json-stat.org
-
+A jackson module that supports JSON-stat format - http://json-stat.org
+The module comes with a data model that represents datasets and dimensions. Versions 1.x are supported but the main focus is on the version 2.0. 
 
 Status
 ======
 
-[![Build Status](https://travis-ci.org/statisticsnorway/json-stat.java.svg?branch=master)](https://travis-ci.org/statisticsnorway/json-stat.java)
+[![Build Status](https://travis-ci.org/statisticsnorway/json-stat.java.svg?branch=feature/json-stat-v1)](https://travis-ci.org/statisticsnorway/json-stat.java)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/no.ssb/json-stat-java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/no.ssb/json-stat-java)
 [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/no.ssb/json-stat-java/badge.svg)](http://www.javadoc.io/doc/no.ssb/json-stat-java)
 
@@ -15,12 +15,17 @@ Add json stat dependency into your project
 
 ````java
 <dependency>
-            <groupId>no.ssb</groupId>
-            <artifactId>json-stat</artifactId>
-            <version>0.1.3</version>
+    <groupId>no.ssb.jsonstat</groupId>
+    <artifactId>json-stat-java</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
 </dependency>
 ````
 
+Register the module
+````java
+mapper = new ObjectMapper();
+mapper.registerModule(new JsonStatModule());
+````
 Create a new json stat data set
 
 ````java 

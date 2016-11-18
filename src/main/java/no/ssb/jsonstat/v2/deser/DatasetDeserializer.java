@@ -112,7 +112,30 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
                     values = parseValues(p, ctxt);
                     break;
                 case "dimension":
-                    dims = p.readValueAs(DIMENSION_MAP);
+                    if (!version.orElse("1.x").equals("2.0")) {
+                        dims = Maps.newHashMap();
+                        // Deal with the id, size and role inside dimension.
+                        while (p.nextValue() != JsonToken.END_OBJECT) {
+                            switch (p.getCurrentName()) {
+                                case "id":
+                                    ids = p.readValueAs(ID_SET);
+                                    break;
+                                case "size":
+                                    sizes = p.readValueAs(SIZE_LIST);
+                                    break;
+                                case "role":
+                                    roles = p.readValueAs(ROLE_MULTIMAP);
+                                    break;
+                                default:
+                                    dims.put(
+                                            p.getCurrentName(),
+                                            ctxt.readValue(p, Dimension.Builder.class)
+                                    );
+                            }
+                        }
+                    } else {
+                        dims = p.readValueAs(DIMENSION_MAP);
+                    }
                     break;
                 case "id":
                     ids = p.readValueAs(ID_SET);
