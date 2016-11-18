@@ -2,6 +2,8 @@ package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -38,6 +40,35 @@ public class DatasetDeserializationTest {
         module.addDeserializer(Dataset.Builder.class, new DatasetDeserializer());
         module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
         mapper.registerModule(module);
+    }
+
+    @Test
+    public void testExtension() throws Exception {
+
+        URL galicia = Resources.getResource(getClass(), "./galicia.json");
+
+        ObjectNode node = mapper.readValue(new BufferedInputStream(
+                galicia.openStream()
+        ), ObjectNode.class);
+
+        assertThat(node).isNotNull();
+
+        // Manually add extension
+        node.with("extension")
+                .put("number", 10)
+                .putArray("array")
+                    .add("string");
+
+        Dataset jsonStat = mapper.readValue(
+                mapper.writeValueAsBytes(node),
+                Dataset.Builder.class
+        ).build();
+
+        assertThat(jsonStat).isNotNull();
+        assertThat(jsonStat.getExtension())
+                .isNotNull()
+                .isInstanceOf(ObjectNode.class);
+
     }
 
     @Test
