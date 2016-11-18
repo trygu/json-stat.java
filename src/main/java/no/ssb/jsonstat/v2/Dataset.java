@@ -211,7 +211,7 @@ public abstract class Dataset extends JsonStat {
                     .collect(MoreCollectors.toImmutableList());
 
             indexProduct = Lists.cartesianProduct(indexes);
-            valueSize = this.dimensions.size() - this.indexes.size();
+            valueSize = Math.max(this.dimensions.size() - this.indexes.size(), 1);
         }
 
         @Override
@@ -300,11 +300,15 @@ public abstract class Dataset extends JsonStat {
                                 @Override
                                 public List<Number> get(Object key) {
                                     int index = indexProduct.indexOf(key);
-                                    ImmutableList.Builder<Number> builder = ImmutableList.builder();
+                                    return getPoints(index);
+                                }
+
+                                private List<Number> getPoints(int index) {
+                                    List<Number> points = Lists.newArrayList();
                                     for (int i = index; i < index + valueSize; i++) {
-                                        builder.add(values.get(i));
+                                        points.add(values.get(i));
                                     }
-                                    return builder.build();
+                                    return Collections.unmodifiableList(points);
                                 }
 
                                 @Override
@@ -312,17 +316,25 @@ public abstract class Dataset extends JsonStat {
                                     return new AbstractSet<Entry<List<String>, List<Number>>>() {
                                         @Override
                                         public Iterator<Entry<List<String>, List<Number>>> iterator() {
-                                            return Iterators.transform(indexProduct.iterator(), input -> {
-                                                int index = indexProduct.indexOf(input);
-                                                ImmutableList.Builder<Number> builder = ImmutableList.builder();
-                                                for (int i = index; i < index + valueSize; i++) {
-                                                    builder.add(values.get(i));
+                                            return new Iterator<Entry<List<String>, List<Number>>>() {
+
+                                                ListIterator<List<String>> keyIterator = indexProduct.listIterator();
+
+                                                @Override
+                                                public boolean hasNext() {
+                                                    return keyIterator.hasNext();
                                                 }
-                                                return (Entry<List<String>, List<Number>>) new SimpleEntry<>(
-                                                        input,
-                                                        (List<Number>) builder.build()
-                                                );
-                                            });
+
+                                                @Override
+                                                public Entry<List<String>, List<Number>> next() {
+                                                    List<String> dims = keyIterator.next();
+                                                    List<Number> metrics = getPoints(keyIterator.previousIndex());
+                                                    return new SimpleEntry<>(
+                                                            dims,
+                                                            metrics
+                                                    );
+                                                }
+                                            };
                                         }
 
                                         @Override
