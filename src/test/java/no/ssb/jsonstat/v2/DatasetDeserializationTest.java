@@ -3,15 +3,13 @@ package no.ssb.jsonstat.v2;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
-import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
-import no.ssb.jsonstat.v2.deser.DimensionDeserializer;
+import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -36,11 +34,7 @@ public class DatasetDeserializationTest {
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new Jdk8Module());
         mapper.registerModule(new JavaTimeModule());
-
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(DatasetBuildable.class, new DatasetDeserializer());
-        module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
-        mapper.registerModule(module);
+        mapper.registerModule(new JsonStatModule());
     }
 
     @Test
@@ -86,7 +80,7 @@ public class DatasetDeserializationTest {
         node.with("extension")
                 .put("number", 10)
                 .putArray("array")
-                    .add("string");
+                .add("string");
 
         Dataset jsonStat = mapper.readValue(
                 mapper.writeValueAsBytes(node),

@@ -1,10 +1,18 @@
 package no.ssb.jsonstat;
 
-import com.fasterxml.jackson.databind.deser.Deserializers;
+import com.fasterxml.jackson.databind.module.SimpleDeserializers;
+import no.ssb.jsonstat.v2.DatasetBuildable;
+import no.ssb.jsonstat.v2.Dimension;
+import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
+import no.ssb.jsonstat.v2.deser.DimensionDeserializer;
 
 /**
- * Created by hadrien on 08/06/16.
+ * Main deserializer-
  */
-public class JsonStatDeserializer extends Deserializers.Base {
+public class JsonStatDeserializer extends SimpleDeserializers {
 
+    public JsonStatDeserializer() {
+        addDeserializer(DatasetBuildable.class, new DatasetDeserializer());
+        addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
+    }
 }

@@ -1,7 +1,6 @@
 package no.ssb.jsonstat;
 
 import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 /**
@@ -15,6 +14,7 @@ public class JsonStatModule extends SimpleModule {
     public void setupModule(SetupContext context) {
         super.setupModule(context);
 
+        context.addDeserializers(new JsonStatDeserializer());
         // TODO: Ensure Optional can be handled.
         // TODO: Ensure Instant can be handled.
 
