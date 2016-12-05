@@ -1,10 +1,7 @@
 package no.ssb.jsonstat.v2;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
 
@@ -16,14 +13,13 @@ import java.util.function.Function;
  * Created by hadrien on 07/06/16.
  * https://json-stat.org/format/#dimension
  */
-public class Dimension extends JsonStat {
+public class Dimension {
 
     private final Category category;
     // https://json-stat.org/format/#label
     private String label;
 
     public Dimension(Category category) {
-        super(Version.TWO, Class.DIMENSION);
         this.category = category;
     }
 
@@ -123,6 +119,7 @@ public class Dimension extends JsonStat {
 
     public static class Builder {
 
+        // TODO: hasRole
         private final String id;
         private final ImmutableSet.Builder<String> index;
         private final ImmutableMap.Builder<String, String> labels;
@@ -204,8 +201,14 @@ public class Dimension extends JsonStat {
                                     Function.identity()
                             )
                     );
+
             return withIndexedLabels(ImmutableMap.copyOf(newIndexedLabels));
 
+        }
+
+        public Builder withIndex(ImmutableSet<String> index) {
+          this.index.addAll(index);
+          return this;
         }
 
         /**
@@ -272,6 +275,16 @@ public class Dimension extends JsonStat {
 
         protected Roles getRole() {
             return this.role;
+        }
+
+        public boolean contains(String index) {
+            // TODO: Optimize this.
+            return this.labels.build().containsKey(index);
+        }
+
+        public Integer indexOf(String index) {
+            // TODO: Optimize this.
+            return Lists.newArrayList(this.labels.build().keySet()).indexOf(index);
         }
     }
 }
