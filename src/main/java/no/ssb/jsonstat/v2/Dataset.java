@@ -25,8 +25,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import me.yanaga.guava.stream.MoreCollectors;
@@ -51,7 +49,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -168,7 +165,7 @@ public abstract class Dataset extends JsonStat {
      * <p>
      * The keys are the dimensions and values their associated values.
      */
-    public abstract Map<List<String>, List<Number>> asMap();
+    public abstract Map<List<String>, Number> asMap();
 
     /**
      * Return the dimensions of the dataset.
@@ -200,22 +197,9 @@ public abstract class Dataset extends JsonStat {
      * row by row and cell by cell, in the order defined by the dimensions.
      */
     @JsonIgnore
-    public Collection<List<Number>> getRows() {
-        return new AbstractCollection<List<Number>>() {
-            @Override
-            public Iterator<List<Number>> iterator() {
-                Iterator<Number> iterator = getValue().values().iterator();
-                return Iterators.paddedPartition(iterator, metricSize());
-            }
-
-            @Override
-            public int size() {
-                return getValue().size() / metricSize();
-            }
-        };
+    public Collection<Number> getRows() {
+        return getValue().values();
     }
-
-    public abstract Integer metricSize();
 
     /**
      * A builder for dataset with defined dimensions.
@@ -229,7 +213,6 @@ public abstract class Dataset extends JsonStat {
         private final String label;
         private final String source;
         private final Instant updated;
-        private final int valueSize;
 
         private Object extension;
 
@@ -260,11 +243,10 @@ public abstract class Dataset extends JsonStat {
                     .collect(MoreCollectors.toImmutableList());
 
             indexProduct = Lists.cartesianProduct(indexes);
-            valueSize = Math.max(this.dimensions.size() - this.indexes.size(), 1);
         }
 
         @Override
-        public DatasetBuildable withValues(Collection<List<Number>> values) {
+        public DatasetBuildable withValues(Collection<Number> values) {
             checkNotNull(values);
 
             if (values.isEmpty())
@@ -274,7 +256,7 @@ public abstract class Dataset extends JsonStat {
         }
 
         @Override
-        public DatasetBuildable withValues(Iterable<List<Number>> values) {
+        public DatasetBuildable withValues(Iterable<Number> values) {
             checkNotNull(values);
 
             // Optimization.
@@ -288,42 +270,31 @@ public abstract class Dataset extends JsonStat {
         }
 
         @Override
-        public DatasetBuildable withValues(Stream<List<Number>> values) {
+        public DatasetBuildable withValues(Stream<Number> values) {
             checkNotNull(values);
 
             if (Stream.empty().equals(values))
                 return build(Stream.empty());
 
             Stream<Map.Entry<Integer, Number>> entryStream = StreamUtils.zipWithIndex(values)
-                    .flatMap(tuple -> {
+                    .map(tuple -> {
                         Integer dimensionIndex = Math.toIntExact(tuple.getIndex());
-                        List<Number> metrics = checkNotNull(tuple.getValue());
-                        checkArgument(metrics.size() == valueSize,
-                                "The value list size was incorrect, got %s, expected %s", metrics.size(), valueSize);
-                        return StreamUtils.zipWithIndex(metrics.stream())
-                                .map(metric -> {
-                                    Integer metricIndex = Math.toIntExact(metric.getIndex());
-                                    return new AbstractMap.SimpleEntry<>(
-                                            dimensionIndex * valueSize + metricIndex, metric.getValue());
-                                });
+                        Number metric = tuple.getValue();
+                        return new AbstractMap.SimpleEntry<>(
+                                            dimensionIndex, metric);
                     });
 
             return build(entryStream);
         }
 
         @Override
-        public DatasetBuildable withMapper(Function<List<String>, List<Number>> mapper) {
+        public DatasetBuildable withMapper(Function<List<String>, Number> mapper) {
             // apply function and unroll.
             return withValues(indexProduct.stream().map(mapper));
         }
 
         @Override
-        public DatasetBuildable withFlatValues(Iterable<Number> values) {
-            return withValues(Iterables.partition(values, valueSize));
-        }
-
-        @Override
-        public ValuesBuilder addTuple(List<String> dimensions, List<Number> values) {
+        public ValuesBuilder addTuple(List<String> dimensions, Number value) {
             // TODO:
             return this;
         }
@@ -348,29 +319,24 @@ public abstract class Dataset extends JsonStat {
                         }
 
                         @Override
-                        public Map<List<String>, List<Number>> asMap() {
-                            final Map<List<String>, List<Number>> map = new AbstractMap<List<String>, List<Number>>() {
+                        public Map<List<String>, Number> asMap() {
+                            final Map<List<String>, Number> map = new AbstractMap<List<String>, Number>() {
 
                                 @Override
-                                public List<Number> get(Object key) {
+                                public Number get(Object key) {
                                     int index = indexProduct.indexOf(key);
-                                    return getPoints(index);
-                                }
+                                    if (index == -1)
+                                        return null;
 
-                                private List<Number> getPoints(int index) {
-                                    List<Number> points = Lists.newArrayList();
-                                    for (int i = index; i < index + valueSize; i++) {
-                                        points.add(values.get(i));
-                                    }
-                                    return Collections.unmodifiableList(points);
+                                    return values.get(index);
                                 }
 
                                 @Override
-                                public Set<Entry<List<String>, List<Number>>> entrySet() {
-                                    return new AbstractSet<Entry<List<String>, List<Number>>>() {
+                                public Set<Entry<List<String>, Number>> entrySet() {
+                                    return new AbstractSet<Entry<List<String>, Number>>() {
                                         @Override
-                                        public Iterator<Entry<List<String>, List<Number>>> iterator() {
-                                            return new Iterator<Entry<List<String>, List<Number>>>() {
+                                        public Iterator<Entry<List<String>, Number>> iterator() {
+                                            return new Iterator<Entry<List<String>, Number>>() {
 
                                                 ListIterator<List<String>> keyIterator = indexProduct.listIterator();
 
@@ -380,12 +346,12 @@ public abstract class Dataset extends JsonStat {
                                                 }
 
                                                 @Override
-                                                public Entry<List<String>, List<Number>> next() {
+                                                public Entry<List<String>, Number> next() {
                                                     List<String> dims = keyIterator.next();
-                                                    List<Number> metrics = getPoints(keyIterator.previousIndex());
+                                                    Number metric = values.get(keyIterator.previousIndex());
                                                     return new SimpleEntry<>(
                                                             dims,
-                                                            metrics
+                                                            metric
                                                     );
                                                 }
                                             };
@@ -393,7 +359,7 @@ public abstract class Dataset extends JsonStat {
 
                                         @Override
                                         public int size() {
-                                            return values.size() / valueSize;
+                                            return values.size();
                                         }
                                     };
                                 }
@@ -406,10 +372,6 @@ public abstract class Dataset extends JsonStat {
                             return dimensions;
                         }
 
-                        @Override
-                        public Integer metricSize() {
-                            return valueSize;
-                        }
                     };
                 }
             };

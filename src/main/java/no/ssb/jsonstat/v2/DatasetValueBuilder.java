@@ -32,7 +32,7 @@ public interface DatasetValueBuilder {
      * @param values the values in row-major order
      * @throws NullPointerException if values is null
      */
-    DatasetBuildable withValues(java.util.Collection<List<Number>> values);
+    DatasetBuildable withValues(java.util.Collection<Number> values);
 
     /**
      * Populate the data set with values.
@@ -43,7 +43,7 @@ public interface DatasetValueBuilder {
      * @param values the values in row-major order
      * @throws NullPointerException if values is null
      */
-    DatasetBuildable withValues(Iterable<List<Number>> values);
+    DatasetBuildable withValues(Iterable<Number> values);
 
     /**
      * Populate the data set with value lists.
@@ -63,10 +63,10 @@ public interface DatasetValueBuilder {
      *   A3B2C1   A3B2C2   A3B2C3   A3B2C4
      * </pre>
      *
-     * @param values the value lists in row-major order
+     * @param values the values in row-major order
      * @throws NullPointerException if values is null
      */
-    DatasetBuildable withValues(Stream<List<Number>> values);
+    DatasetBuildable withValues(Stream<Number> values);
 
     /**
      * Use a mapper function to populate the metrics in the data set.
@@ -81,18 +81,7 @@ public interface DatasetValueBuilder {
      * @param mapper a mapper function to use to populate the metrics in the data set
      * @throws NullPointerException if mapper is null
      */
-    DatasetBuildable withMapper(Function<List<String>, List<Number>> mapper);
-
-    /**
-     * Populate the data set with values one by one.
-     * <p>
-     * This method expects to get
-     *
-     * @param values the values in row-major order
-     * @return a buildable data set
-     * @throws NullPointerException if values is null
-     */
-    DatasetBuildable withFlatValues(Iterable<Number> values);
+    DatasetBuildable withMapper(Function<List<String>, Number> mapper);
 
     /**
      * Add a tuple using the dimension values (categories) and values.
@@ -104,6 +93,6 @@ public interface DatasetValueBuilder {
      *                                  empty map is encountered
      * @throws NullPointerException     is dimensions or metric is null
      */
-    DatasetValueBuilder addTuple(List<String> dimensions, List<Number> values);
+    DatasetValueBuilder addTuple(List<String> dimensions, Number value);
 
 }

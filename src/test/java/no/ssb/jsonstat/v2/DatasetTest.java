@@ -30,10 +30,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.Collection;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Lists.cartesianProduct;
@@ -147,23 +148,9 @@ public class DatasetTest {
         // example: builder.withDimension(Dimension.create("location")
         //        .withGeoRole());
 
-        // Supplier.
-        Stream<List<Number>> collect = cartesianProduct(
-                ImmutableList.of("2003", "2004", "2005"),
-                ImmutableList.of("may", "june", "july"),
-                ImmutableList.of("30", "31", "32"),
-                ImmutableMap.of(
-                        "A", "active population",
-                        "E", "employment",
-                        "U", "unemployment",
-                        "I", "inactive population",
-                        "T", "population 15 years old and over"
-                ).keySet().asList()
-        ).stream().map(dimensions -> Arrays.asList(dimensions.hashCode(), null));
+        //Dataset build = valueBuilder.build();
 
-        Dataset build = valueBuilder.withValues(collect).build();
-
-        assertThat(build).isNotNull();
+        //assertThat(build).isNotNull();
 
     }
 
@@ -179,10 +166,9 @@ public class DatasetTest {
                         Dimension.create("C")
                                 .withCategories("C1", "C2", "C3", "C4"),
                         Dimension.create("E").withMetricRole())
-                .withMapper(strings -> newArrayList(String.join("", strings).hashCode())).build();
+                .withMapper(strings -> String.join("", strings).hashCode()).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows().spliterator(), false)
-                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
 
         List<Integer> expected = Lists.transform(
@@ -338,7 +324,7 @@ public class DatasetTest {
                                 "I", "inactive population",
                                 "T", "population 15 years old and over"
                         ))
-        ).withFlatValues(collect).build();
+        ).withValues(collect).build();
 
         String value = mapper.writeValueAsString(dataset);
 
