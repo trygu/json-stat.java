@@ -1,19 +1,39 @@
+/**
+ * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
+ *
+ *     DatasetTest.java
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -35,20 +55,6 @@ public class DatasetTest {
         mapper.registerModule(new GuavaModule().configureAbsentsAsNulls(false));
     }
 
-    @Test(
-            expectedExceptions = IllegalArgumentException.class,
-            expectedExceptionsMessageRegExp = "size and property sizes do not match"
-    )
-    public void testInvalidSize() throws Exception {
-
-        new Dataset(ImmutableSet.of(
-                "a", "b", "c"
-        ), ImmutableList.of(
-                1, 2, 3, 4
-        ));
-
-    }
-
     @Test(enabled = false)
     public void testNeedAtLeastOneDimension() throws Exception {
         fail("TODO");
@@ -59,17 +65,6 @@ public class DatasetTest {
         fail("TODO");
     }
 
-    @Test()
-    public void testConstructor() throws Exception {
-
-        new Dataset(ImmutableSet.of(
-                "a", "b", "c"
-        ), ImmutableList.of(
-                1, 2, 3
-        ));
-
-    }
-
     @Test(
             expectedExceptions = DuplicateDimensionException.class,
             expectedExceptionsMessageRegExp = ".*duplicatedimension.*"
@@ -77,8 +72,10 @@ public class DatasetTest {
     public void testFailIfDuplicateDimension() throws Exception {
 
         Dataset.create("Test dataset")
-                .withDimension(Dimension.create("duplicatedimension"))
-                .withDimension(Dimension.create("duplicatedimension"));
+                .withDimensions(
+                        Dimension.create("duplicatedimension"),
+                        Dimension.create("duplicatedimension")
+                );
 
     }
 
@@ -87,7 +84,7 @@ public class DatasetTest {
             expectedExceptionsMessageRegExp = ".*dimension builder.*"
     )
     public void testFailIfDimensionIsNull() throws Exception {
-        Dataset.create().withDimension(null);
+        Dataset.create().withDimensions((Dimension.Builder[]) null);
     }
 
     @Test(
@@ -117,30 +114,33 @@ public class DatasetTest {
     @Test
     public void testBuilder() throws Exception {
 
-        Dataset.Builder builder = Dataset.create().withLabel("");
+        DatasetBuilder builder = Dataset.create().withLabel("");
         builder.withSource("");
         builder.updatedAt(Instant.now());
 
         Dimension.Builder dimension = Dimension.create("year")
                 .withRole(Dimension.Roles.TIME)
                 .withCategories(ImmutableSet.of("2003", "2004", "2005"));
-        builder.withDimension(dimension);
 
+        DatasetValueBuilder valueBuilder = builder.withDimensions(
+                dimension,
+                Dimension.create("month").withRole(Dimension.Roles.TIME)
+                        .withCategories(ImmutableSet.of("may", "june", "july")),
+                Dimension.create("week").withTimeRole()
+                        .withLabels(ImmutableList.of("30", "31", "32")),
+                Dimension.create("population")
+                        .withIndexedLabels(ImmutableMap.of(
+                                "A", "active population",
+                                "E", "employment",
+                                "U", "unemployment",
+                                "I", "inactive population",
+                                "T", "population 15 years old and over"
+                        )),
+                Dimension.create("arrival").withMetricRole(),
+                Dimension.create("departure").withRole(Dimension.Roles.METRIC)
+        );
 
-        builder.withDimension(Dimension.create("month").withRole(Dimension.Roles.TIME)
-                .withCategories(ImmutableSet.of("may", "june", "july")));
-
-        builder.withDimension(Dimension.create("week").withTimeRole()
-                .withLabels(ImmutableList.of("30", "31", "32")));
-
-        builder.withDimension(Dimension.create("population")
-                .withIndexedLabels(ImmutableMap.of(
-                        "A", "active population",
-                        "E", "employment",
-                        "U", "unemployment",
-                        "I", "inactive population",
-                        "T", "population 15 years old and over"
-                )));
+        builder.withExtension(ImmutableMap.<String, String>of("arbitrary_field", "arbitrary_value"));
 
         // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
         // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
@@ -148,102 +148,9 @@ public class DatasetTest {
         // example: builder.withDimension(Dimension.create("location")
         //        .withGeoRole());
 
-        builder.withDimension(Dimension.create("arrival").withMetricRole());
-        builder.withDimension(Dimension.create("departure").withRole(Dimension.Roles.METRIC));
+        //Dataset build = valueBuilder.build();
 
-        // Supplier.
-        List<Number> collect = cartesianProduct(
-                ImmutableList.of("2003", "2004", "2005"),
-                ImmutableList.of("may", "june", "july"),
-                ImmutableList.of("30", "31", "32"),
-                ImmutableMap.of(
-                        "A", "active population",
-                        "E", "employment",
-                        "U", "unemployment",
-                        "I", "inactive population",
-                        "T", "population 15 years old and over"
-                ).keySet().asList()
-        ).stream().map(dimensions -> dimensions.hashCode()).collect(Collectors.toList());
-
-        Dataset build = builder.withValues(collect).build();
-
-        assertThat(build).isNotNull();
-
-    }
-
-    @Test
-    public void testRowMajorDimensionValues() throws Exception {
-
-        Dataset dataset = Dataset.create("test")
-                .withDimension(
-                        Dimension.create("A")
-                                .withCategories("A1", "A2", "A3"))
-                .withDimension(Dimension.create("B")
-                        .withCategories("B1", "B2"))
-                .withDimension(Dimension.create("C")
-                        .withCategories("C1", "C2", "C3", "C4")
-                ).build();
-
-        Iterable<List<String>> limit = Lists.newArrayList(
-                Iterators.limit(
-                        dataset.getDimensionIndexIterator(Arrays.asList("A", "B", "C")), 25
-                )
-        );
-
-        assertThat(limit).containsExactly(
-                Arrays.asList("A1", "B1", "C1"),
-                Arrays.asList("A1", "B1", "C2"),
-                Arrays.asList("A1", "B1", "C3"),
-                Arrays.asList("A1", "B1", "C4"),
-
-                Arrays.asList("A1", "B2", "C1"),
-                Arrays.asList("A1", "B2", "C2"),
-                Arrays.asList("A1", "B2", "C3"),
-                Arrays.asList("A1", "B2", "C4"),
-
-                Arrays.asList("A2", "B1", "C1"),
-                Arrays.asList("A2", "B1", "C2"),
-                Arrays.asList("A2", "B1", "C3"),
-                Arrays.asList("A2", "B1", "C4"),
-
-                Arrays.asList("A2", "B2", "C1"),
-                Arrays.asList("A2", "B2", "C2"),
-                Arrays.asList("A2", "B2", "C3"),
-                Arrays.asList("A2", "B2", "C4"),
-
-                Arrays.asList("A3", "B1", "C1"),
-                Arrays.asList("A3", "B1", "C2"),
-                Arrays.asList("A3", "B1", "C3"),
-                Arrays.asList("A3", "B1", "C4"),
-
-                Arrays.asList("A3", "B2", "C1"),
-                Arrays.asList("A3", "B2", "C2"),
-                Arrays.asList("A3", "B2", "C3"),
-                Arrays.asList("A3", "B2", "C4"),
-
-                // And looping!
-                Arrays.asList("A1", "B1", "C1")
-        );
-
-        limit = Lists.newArrayList(
-                Iterators.limit(
-                        dataset.getDimensionIndexIterator(Arrays.asList("A", "B")), 7
-                )
-        );
-
-        assertThat(limit).containsExactly(
-                Arrays.asList("A1", "B1"),
-                Arrays.asList("A1", "B2"),
-
-                Arrays.asList("A2", "B1"),
-                Arrays.asList("A2", "B2"),
-
-                Arrays.asList("A3", "B1"),
-                Arrays.asList("A3", "B2"),
-
-                // And looping!
-                Arrays.asList("A1", "B1")
-        );
+        //assertThat(build).isNotNull();
 
     }
 
@@ -251,19 +158,17 @@ public class DatasetTest {
     public void testGetRows() throws Exception {
 
         Dataset dataset = Dataset.create("test")
-                .withDimension(
+                .withDimensions(
                         Dimension.create("A")
-                                .withCategories("A1", "A2", "A3"))
-                .withDimension(Dimension.create("B")
-                        .withCategories("B1", "B2"))
-                .withDimension(Dimension.create("C")
-                        .withCategories("C1", "C2", "C3", "C4")
-                ).withMapper(strings -> {
-                    return newArrayList(String.join("", strings).hashCode());
-                }).build();
+                                .withCategories("A1", "A2", "A3"),
+                        Dimension.create("B")
+                                .withCategories("B1", "B2"),
+                        Dimension.create("C")
+                                .withCategories("C1", "C2", "C3", "C4"),
+                        Dimension.create("E").withMetricRole())
+                .withMapper(strings -> String.join("", strings).hashCode()).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows().spliterator(), false)
-                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
 
         List<Integer> expected = Lists.transform(
@@ -283,95 +188,75 @@ public class DatasetTest {
     }
 
     @Test
-    public void testGetRowsEmtpy() throws Exception {
-        Dataset dataset = Dataset.create("test")
-                .withDimension(
-                        Dimension.create("A")
-                                .withCategories("A1", "A2", "A3"))
-                .withDimension(Dimension.create("B")
-                        .withCategories("B1", "B2"))
-                .withDimension(Dimension.create("C")
-                        .withCategories("C1", "C2", "C3", "C4")
-                ).withMapper(strings -> {
-                    return newArrayList(String.join("", strings).hashCode());
-                }).build();
+    public void checkAddTuple() throws Exception {
 
-        assertThat(dataset.getRows(Collections.emptyList())).isEmpty();
+        DatasetValueBuilder dataset = Dataset.create("test")
+                .withDimensions(
+                        Dimension.create("A")
+                                .withCategories("A1", "A2", "A3"),
+
+                        Dimension.create("B")
+                                .withCategories("B1", "B2"),
+
+                        Dimension.create("C")
+                                .withMetricRole()
+                );
+        // TODO: Separate metrics from dimensions...
+        // à la withMetricDimension(Dimension.createMetric(name).withUnit()...
+
+        // TODO: Make this less verbose?
+//        Dataset ds = dataset.addTuple(
+//                list("A", "A1", "B", "B1"),
+//                list(1)
+//        ).addTuple(
+//                list("A1", "B2", "C1"),
+//                list(2)
+//        ).build();
+
+        // A1B1 1
+        // A1B2 3
+        // A2B1 5
+        // A2B2 6
+        // A3B1 4
+        // A3B2 2
+
+    }
+
+    private <T> List<T> list(T... e) {
+        return Arrays.asList(e);
     }
 
     @Test
-    public void testGetRowsAllDimensions() throws Exception {
-        Dataset dataset = Dataset.create("test")
-                .withDimension(
+    public void testTuple() {
+
+        DatasetValueBuilder builder = Dataset.create("test")
+                .withDimensions(
                         Dimension.create("A")
-                                .withCategories("A1", "A2", "A3"))
-                .withDimension(Dimension.create("B")
-                        .withCategories("B1", "B2"))
-                .withDimension(Dimension.create("C")
-                        .withCategories("C1", "C2", "C3", "C4")
-                ).withMapper(strings -> {
-                    return newArrayList(String.join("", strings).hashCode());
-                }).build();
+                                .withCategories("A1", "A2", "A3"),
+                        Dimension.create("B")
+                                .withCategories("B1", "B2"),
+                        Dimension.create("C")
+                                .withMetricRole()
+                );
 
-        List<Object> result = StreamSupport.stream(dataset.getRows(Arrays.asList("A", "B", "C")).spliterator(), false)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+        // A1B1 1
+        // A1B2 3
+        // A2B1 5
+        // A2B2 6
+        // A3B1 4
+        // A3B2 2
 
-        assertThat(result).hasSize(3 * 2 * 4);
-    }
+//        builder.addTuple(list("A1", "B1"), list(1));
+//        builder.addTuple(list("A1", "B2"), list(3));
+//        builder.addTuple(list("A2", "B1"), list(5));
+//        builder.addTuple(list("A2", "B2"), list(6));
+//        builder.addTuple(list("A3", "B1"), list(4));
+//        builder.addTuple(list("A3", "B2"), list(2));
+//
+//        assertThat(builder.build().getValue().values()).containsExactly(
+//                1, 3, 5, 6, 4, 2
+//        );
 
-    @Test
-    public void testValueMapper() throws Exception {
-
-        Dataset.Builder builder = Dataset.create().withLabel("")
-                .withDimension(Dimension.create("year")
-                        .withRole(Dimension.Roles.TIME)
-                        .withIndexedLabels(ImmutableMap.of("2003", "2003", "2004", "2004", "2005", "2005")))
-
-                .withDimension(Dimension.create("month").withRole(Dimension.Roles.TIME)
-                        .withIndexedLabels(ImmutableMap.of("may", "may", "june", "june", "july", "july")))
-
-                .withDimension(Dimension.create("week").withTimeRole()
-                        .withIndexedLabels(ImmutableMap.of("30", "30", "31", "31", "32", "32")))
-
-                .withDimension(Dimension.create("population")
-                        .withIndexedLabels(ImmutableMap.of(
-                                "A", "active population",
-                                "E", "employment",
-                                "U", "unemployment",
-                                "I", "inactive population",
-                                "T", "population 15 years old and over"
-                        )))
-                .withDimension(Dimension.create("amount").withMetricRole()
-                        .withIndexedLabels(ImmutableMap.of("millions", "millions")))
-
-                .withDimension(Dimension.create("percent").withMetricRole()
-                        .withIndexedLabels(ImmutableMap.of("%", "percent")));
-
-
-        Dataset dataset = builder.withMapper(
-                dimensions -> newArrayList(
-                        dimensions.hashCode(),
-                        dimensions.hashCode())
-        ).build();
-
-        // Supplier.
-        List<Number> collect = cartesianProduct(
-                ImmutableList.of("2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010"),
-                ImmutableList.of("may", "june", "july"),
-                ImmutableList.of("30", "31", "32"),
-                ImmutableMap.of(
-                        "A", "active population",
-                        "E", "employment",
-                        "U", "unemployment",
-                        "I", "inactive population",
-                        "T", "population 15 years old and over"
-                ).keySet().asList()
-        ).stream().map(List::hashCode).collect(Collectors.toList());
-
-        String value = mapper.writeValueAsString(dataset);
-
-        assertThat(value).isNotNull();
 
     }
 
@@ -388,13 +273,58 @@ public class DatasetTest {
     @Test
     public void testSerialize() throws Exception {
 
-        // TODO: Find a way to implement the child that is fluent.
+        DatasetBuilder builder = Dataset.create().withLabel("");
+        builder.withSource("");
+        builder.updatedAt(Instant.now());
 
-        Dataset dataset = new Dataset(ImmutableSet.of(
-                "a", "b"
-        ), ImmutableList.of(
-                1, 1
-        ));
+        Dimension.Builder dimension = Dimension.create("year")
+                .withRole(Dimension.Roles.TIME)
+                .withCategories(ImmutableSet.of("2003", "2004", "2005"));
+
+        builder.withExtension(ImmutableMap.of("arbitrary_field", "arbitrary_value"));
+
+        // TODO: addDimension("name") returning Dimension.Builder? Super fluent?
+        // TODO: How to ensure valid data with the geo builder? Add the type first and extend builders?
+        // TODO: express hierarchy with the builder? Check how ES did that with the query builders.
+        // example: builder.withDimension(Dimension.create("location")
+        //        .withGeoRole());
+
+        // Supplier.
+        List<Number> collect = cartesianProduct(
+                ImmutableList.of("2003", "2004", "2005"),
+                ImmutableList.of("may", "june", "july"),
+                ImmutableList.of("30", "31", "32"),
+                ImmutableMap.of(
+                        "A", "active population",
+                        "E", "employment",
+                        "U", "unemployment",
+                        "I", "inactive population",
+                        "T", "population 15 years old and over"
+                ).keySet().asList()
+        ).stream().map(dimensions -> dimensions.hashCode()).collect(Collectors.toList());
+
+        // Some extension.
+        List<Map<String, List<Instant>>> extension = Collections.singletonList(
+                ImmutableMap.of(
+                        "now", Collections.singletonList(Instant.now())
+                )
+        );
+
+        Dataset dataset = builder.withExtension(extension).withDimensions(
+                dimension,
+                Dimension.create("month").withRole(Dimension.Roles.TIME)
+                        .withCategories(ImmutableSet.of("may", "june", "july")),
+                Dimension.create("week").withTimeRole()
+                        .withLabels(ImmutableList.of("30", "31", "32")),
+                Dimension.create("population")
+                        .withIndexedLabels(ImmutableMap.of(
+                                "A", "active population",
+                                "E", "employment",
+                                "U", "unemployment",
+                                "I", "inactive population",
+                                "T", "population 15 years old and over"
+                        ))
+        ).withValues(collect).build();
 
         String value = mapper.writeValueAsString(dataset);
 

@@ -1,15 +1,32 @@
+/**
+ * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
+ *
+ *     DatasetDeserializationTest.java
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package no.ssb.jsonstat.v2;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
-import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
-import no.ssb.jsonstat.v2.deser.DimensionDeserializer;
+import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -17,11 +34,11 @@ import java.io.BufferedInputStream;
 import java.net.URL;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.data.MapEntry.entry;
 
 public class DatasetDeserializationTest {
 
@@ -33,11 +50,64 @@ public class DatasetDeserializationTest {
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new Jdk8Module());
         mapper.registerModule(new JavaTimeModule());
+        mapper.registerModule(new JsonStatModule());
+    }
 
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(Dataset.Builder.class, new DatasetDeserializer());
-        module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
-        mapper.registerModule(module);
+    @Test
+    public void testSsbApi() throws Exception {
+
+        URL ssb = Resources.getResource(getClass(), "./ssb-api.json");
+        JsonParser parser = mapper.getFactory().createParser(new BufferedInputStream(
+                ssb.openStream()
+        ));
+        // v1 is in a map
+        TypeReference<Map<String, DatasetBuildable>> ref = new TypeReference<Map<String, DatasetBuildable>>() {
+            // just a ref.
+        };
+
+        Map<String, DatasetBuildable> o = mapper.readValue(
+                parser,
+                ref
+        );
+
+        DatasetBuildable next = o.values().iterator().next();
+
+        Dataset build = next.build();
+
+        Map<List<String>, Number> listListMap = build.asMap();
+        for (Map.Entry<List<String>, Number> listListEntry : listListMap.entrySet()) {
+            System.out.println(listListEntry);
+        }
+
+    }
+
+    @Test
+    public void testExtension() throws Exception {
+
+        URL galicia = Resources.getResource(getClass(), "./galicia.json");
+
+        ObjectNode node = mapper.readValue(new BufferedInputStream(
+                galicia.openStream()
+        ), ObjectNode.class);
+
+        assertThat(node).isNotNull();
+
+        // Manually add extension
+        node.with("extension")
+                .put("number", 10)
+                .putArray("array")
+                .add("string");
+
+        Dataset jsonStat = mapper.readValue(
+                mapper.writeValueAsBytes(node),
+                DatasetBuildable.class
+        ).build();
+
+        assertThat(jsonStat).isNotNull();
+        assertThat(jsonStat.getExtension())
+                .isNotNull()
+                .isInstanceOf(ObjectNode.class);
+
     }
 
     @Test
@@ -49,7 +119,7 @@ public class DatasetDeserializationTest {
                 new BufferedInputStream(
                         galicia.openStream()
                 ),
-                Dataset.Builder.class
+                DatasetBuildable.class
         ).build();
 
         assertThat(jsonStat.getVersion()).isEqualTo("2.0");
@@ -58,16 +128,13 @@ public class DatasetDeserializationTest {
         assertThat(jsonStat.getSource()).contains("INE and IGE");
         assertThat(jsonStat.getUpdated()).contains(Instant.parse("2012-12-27T12:25:09Z"));
 
-
-        ImmutableMap<List<String>, List<Number>> limit = ImmutableMap.copyOf(
-                Iterables.limit(jsonStat.getRowMap().entrySet(), 5)
-        );
+        Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 5);
         assertThat(limit).containsExactly(
-                entry(asList("T", "T", "T", "2001", "T", "pop"), singletonList(2695880)),
-                entry(asList("T", "T", "T", "2001", "15", "pop"), singletonList(1096027)),
-                entry(asList("T", "T", "T", "2001", "27", "pop"), singletonList(357648)),
-                entry(asList("T", "T", "T", "2001", "32", "pop"), singletonList(338446)),
-                entry(asList("T", "T", "T", "2001", "36", "pop"), singletonList(903759))
+                entry(asList("T", "T", "T", "2001", "T"), 2695880),
+                entry(asList("T", "T", "T", "2001", "15"), 1096027),
+                entry(asList("T", "T", "T", "2001", "27"), 357648),
+                entry(asList("T", "T", "T", "2001", "32"), 338446),
+                entry(asList("T", "T", "T", "2001", "36"), 903759)
         );
 
     }

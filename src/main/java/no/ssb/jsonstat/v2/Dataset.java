@@ -1,62 +1,91 @@
+/**
+ * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
+ *
+ *     Dataset.java
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package no.ssb.jsonstat.v2;
 
+import com.codepoetics.protonpack.StreamUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Predicates;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.AbstractCollection;
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A model of the JSON-stat dataset format.
  * <p>
- * This model is a java based implementation of the JSON-stat format defined on
+ * This model is a java based implementation of the JSON-stat format defined at
  * <a href="https://json-stat.org/">json-stat.org/</a>. It relies heavily on Java 8 and the Google Guava library.
  * <p>
  * Instances of this class are immutable and must be created using the provided {@link Dataset#create(String)} static
  * method.
  */
-public class Dataset extends JsonStat {
+public abstract class Dataset extends JsonStat {
 
-    // TODO: Use a set and transform to list.
-    private final ImmutableSet<String> id;
-    private final ImmutableList<Integer> size;
+    private final String label;
+    private final String source;
+    private final Instant updated;
+    // TODO: Support for status.
 
-    private String label = null;
-    private String source = null;
-    private Instant updated = null;
-    private Map<String, Dimension> dimension;
-    private List<Number> value;
 
-    protected Dataset(ImmutableSet<String> id, ImmutableList<Integer> size) {
+    protected Dataset(String label, String source, Instant updated) {
         super(Version.TWO, Class.DATASET);
-        checkArgument(id.size() == size.size(), "size and property sizes do not match");
-        this.id = id;
-        this.size = size;
+        this.label = label;
+        this.source = source;
+        this.updated = updated;
     }
 
     /**
      * Create a new {@link Builder} instance.
      */
-    public static Builder create() {
+    public static DatasetBuilder create() {
         return new Builder();
     }
 
     /**
      * Create a new {@link Builder} instance.
      */
-    public static Builder create(String label) {
+    public static DatasetBuilder create(String label) {
         Builder builder = new Builder();
         return builder.withLabel(label);
     }
@@ -68,9 +97,7 @@ public class Dataset extends JsonStat {
      * @see <a href="https://json-stat.org/format/#id">json-stat.org/format/#id</a>
      */
     public ImmutableSet<String> getId() {
-        // Cannot be empty. Should retain order.
-        // Should be same order and size than id.
-        return id;
+        return ImmutableSet.copyOf(getDimension().keySet());
     }
 
     /**
@@ -80,13 +107,26 @@ public class Dataset extends JsonStat {
      * @see <a href="https://json-stat.org/format/#size">json-stat.org/format/#size</a>
      */
     public ImmutableList<Integer> getSize() {
-        // Cannot be empty. Should retain order.
-        // Should be same order and size than id.
-        return size;
+        return getDimension()
+                .values()
+                .stream()
+                .map(Dimension::getCategory)
+                .map(Dimension.Category::getIndex)
+                .map(AbstractCollection::size)
+                .collect(MoreCollectors.toImmutableList());
     }
 
     /**
-     * Return the update time of the dataset.
+     * Return the extension value of this dataset.
+     * <p>
+     * If the dataset was deserialized, the return value will be an {@link ObjectNode}.
+     *
+     * @see <a href="https://json-stat.org/format/#size">json-stat.org/format/#extension</a>
+     */
+    abstract Object getExtension();
+
+    /**
+     * Return the updated time of the dataset.
      *
      * @see <a href="https://json-stat.org/format/#updated">json-stat.org/format/#updated</a>
      */
@@ -94,7 +134,6 @@ public class Dataset extends JsonStat {
         //  ISO 8601 format recognized by the Javascript Date.parse method (see ECMA-262 Date Time String Format).
         return Optional.ofNullable(updated);
     }
-
 
     /**
      * Return the label of the dataset.
@@ -119,9 +158,14 @@ public class Dataset extends JsonStat {
      *
      * @see <a href="https://json-stat.org/format/#value">json-stat.org/format/#value</a>
      */
-    public Object getValue() {
-        return value;
-    }
+    public abstract Map<Integer, Number> getValue();
+
+    /**
+     * Return the values as tuples.
+     * <p>
+     * The keys are the dimensions and values their associated values.
+     */
+    public abstract Map<List<String>, Number> asMap();
 
     /**
      * Return the dimensions of the dataset.
@@ -129,20 +173,7 @@ public class Dataset extends JsonStat {
      * @see Dimension
      * @see <a href="https://json-stat.org/format/#dimension">json-stat.org/format/#dimension</a>
      */
-    public Map<String, Dimension> getDimension() {
-        return dimension;
-    }
-
-    /**
-     * Return the dimensions of the dataset.
-     *
-     * @see Dimension
-     * @see <a href="https://json-stat.org/format/#dimension">json-stat.org/format/#dimension</a>
-     */
-    @JsonIgnore
-    public Map<String, Dimension> getDimension(String... filter) {
-        return getDimension(Arrays.asList(filter));
-    }
+    public abstract Map<String, Dimension> getDimension();
 
     /**
      * Return the dimensions of the dataset.
@@ -156,7 +187,7 @@ public class Dataset extends JsonStat {
             return Collections.emptyMap();
 
         return Maps.filterKeys(
-                dimension,
+                getDimension(),
                 Predicates.in(filter)
         );
     }
@@ -166,120 +197,194 @@ public class Dataset extends JsonStat {
      * row by row and cell by cell, in the order defined by the dimensions.
      */
     @JsonIgnore
-    public Iterable<List<Number>> getRows() {
-        getRowMap();
-        return Iterables.paddedPartition(this.value, this.id.size());
+    public Collection<Number> getRows() {
+        return getValue().values();
     }
 
     /**
-     * Returns an {@link Iterator} that returns all the dimensions combinations in row major order.
-     * <p>
-     * <b>Warning:</b> the returned iterator will loop indefinitely so make sure to include another stop
-     * condition..
+     * A builder for dataset with defined dimensions.
      */
-    Iterator<List<String>> getDimensionIndexIterator(Collection<String> filter) {
+    static class ValuesBuilder implements DatasetValueBuilder {
 
-        List<Dimension> dimensions =
-                Lists.newArrayList(getDimension(filter).values()
-                );
+        private final ImmutableMap<String, Dimension> dimensions;
+        private final ImmutableList<List<String>> indexes;
+        private final List<List<String>> indexProduct;
 
-        final List<List<String>> dimensionsList = dimensions.stream()
-                .map(Dimension::getCategory)
-                .map(Dimension.Category::getIndex)
-                .map(ImmutableCollection::asList)
-                .collect(Collectors.toList());
+        private final String label;
+        private final String source;
+        private final Instant updated;
 
-        // Transform into cycling iterators.
-        return Iterators.cycle(Lists.cartesianProduct(dimensionsList));
+        private Object extension;
 
-    }
+        ValuesBuilder(
+                ImmutableSet<Dimension.Builder> dimensions,
+                String label,
+                String source,
+                Instant updated,
+                Object extension) {
 
+            // Build the dimensions.
+            this.dimensions = dimensions.stream()
+                    .collect(MoreCollectors.toImmutableMap(
+                            Dimension.Builder::getId,
+                            Dimension.Builder::build
+                    ));
 
-    /**
-     * Utility method that returns an {@link Map} with the dimension values as a {@link List<String>} and
-     * the metric values as a {@link List<Number>}.
-     */
-    @JsonIgnore
-    public Map<List<String>, List<Number>> getRowMap() {
+            this.label = label;
+            this.source = source;
+            this.updated = updated;
+            this.extension = extension;
 
-        ImmutableMap.Builder<List<String>, List<Number>> result = ImmutableMap.builder();
+            indexes = this.dimensions.values().stream()
+                    .map(Dimension::getCategory)
+                    .map(Dimension.Category::getIndex)
+                    .filter(dims -> dims.size() > 1)
+                    .map(ImmutableCollection::asList)
+                    .collect(MoreCollectors.toImmutableList());
 
-        Iterator<List<String>> dimensionIndexIterator = getDimensionIndexIterator(this.dimension.keySet());
-        for (Number number : this.value) {
-            // TODO: Handle several metrics?
-
-            List<String> dimensionValues = dimensionIndexIterator.next();
-            List<Number> values = Arrays.asList(number);
-
-            result.put(dimensionValues, values);
+            indexProduct = Lists.cartesianProduct(indexes);
         }
 
-        return result.build();
+        @Override
+        public DatasetBuildable withValues(Collection<Number> values) {
+            checkNotNull(values);
 
-    }
+            if (values.isEmpty())
+                return build(Stream.empty());
 
-    /**
-     * Utility method that returns a {@link Iterable} of {@link List}s going through the data set
-     * row by row and cell by cell just as {@link #getRows()} does, but restrict the result to the
-     * passed dimensions.
-     * <p>
-     * Note that although the order in which the cells are returned is defined by the passed
-     * dimension names, the order of the rows is still defined by the dimensions.
-     *
-     * @param dimensions the dimension to return
-     * @return list of rows
-     * @throws IllegalArgumentException if any of the dimension names is not in the dataset
-     * @throws NullPointerException     if any of the dimension names is null
-     */
-    @JsonIgnore
-    public Iterable<List<Number>> getRows(String... dimensions) {
-        return getRows(Arrays.asList(dimensions));
-    }
-
-    /**
-     * Utility method that returns a {@link Iterable} of {@link List}s going through the data set
-     * row by row and cell by cell just as {@link #getRows()} does, but restricts the result to the
-     * given dimensions.
-     * <p>
-     * Note that although the order in which the cells are returned is defined by the given
-     * dimension names, the order of the rows is still defined by the dimensions.
-     *
-     * @param dimensions the dimension to return
-     * @return list of rows
-     * @throws IllegalArgumentException if any of the dimension names is not in the dataset
-     * @throws NullPointerException     if any of the dimension names is null
-     */
-    public Iterable<List<Number>> getRows(List<String> dimensions) {
-
-        if (dimensions.isEmpty())
-            return Collections.emptyList();
-
-        if (dimensions.containsAll(this.id))
-            return getRows();
-
-        List<Boolean> index = Lists.newArrayList();
-        for (String dimension : this.id.asList()) {
-            if (dimensions.contains(dimension))
-                index.add(true);
-            else
-                index.add(false);
+            return withValues(values.stream());
         }
 
-        return Iterables.transform(getRows(), input -> {
-            ImmutableList.Builder<Number> filteredRow = ImmutableList.builder();
-            for (int i = 0; i < index.size(); i++) {
-                if (index.get(i))
-                    filteredRow.add(input.get(i));
-            }
-            return filteredRow.build();
-        });
+        @Override
+        public DatasetBuildable withValues(Iterable<Number> values) {
+            checkNotNull(values);
+
+            // Optimization.
+            if (!values.iterator().hasNext())
+                return build(Stream.empty());
+
+            return withValues(StreamSupport.stream(
+                    values.spliterator(),
+                    false
+            ));
+        }
+
+        @Override
+        public DatasetBuildable withValues(Stream<Number> values) {
+            checkNotNull(values);
+
+            if (Stream.empty().equals(values))
+                return build(Stream.empty());
+
+            Stream<Map.Entry<Integer, Number>> entryStream = StreamUtils.zipWithIndex(values)
+                    .map(tuple -> {
+                        Integer dimensionIndex = Math.toIntExact(tuple.getIndex());
+                        Number metric = tuple.getValue();
+                        return new AbstractMap.SimpleEntry<>(
+                                            dimensionIndex, metric);
+                    });
+
+            return build(entryStream);
+        }
+
+        @Override
+        public DatasetBuildable withMapper(Function<List<String>, Number> mapper) {
+            // apply function and unroll.
+            return withValues(indexProduct.stream().map(mapper));
+        }
+
+        @Override
+        public ValuesBuilder addTuple(List<String> dimensions, Number value) {
+            // TODO:
+            return this;
+        }
+
+        public DatasetBuildable build(Stream<Map.Entry<Integer, Number>> entries) {
+
+            Map<Integer, Number> values = entries.filter(entry -> entry.getValue() != null).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            return new DatasetBuildable() {
+                @Override
+                public Dataset build() {
+                    return new Dataset(label, source, updated) {
+
+                        @Override
+                        Object getExtension() {
+                            return extension;
+                        }
+
+                        @Override
+                        public Map<Integer, Number> getValue() {
+                            return values;
+                        }
+
+                        @Override
+                        public Map<List<String>, Number> asMap() {
+                            final Map<List<String>, Number> map = new AbstractMap<List<String>, Number>() {
+
+                                @Override
+                                public Number get(Object key) {
+                                    int index = indexProduct.indexOf(key);
+                                    if (index == -1)
+                                        return null;
+
+                                    return values.get(index);
+                                }
+
+                                @Override
+                                public Set<Entry<List<String>, Number>> entrySet() {
+                                    return new AbstractSet<Entry<List<String>, Number>>() {
+                                        @Override
+                                        public Iterator<Entry<List<String>, Number>> iterator() {
+                                            return new Iterator<Entry<List<String>, Number>>() {
+
+                                                ListIterator<List<String>> keyIterator = indexProduct.listIterator();
+
+                                                @Override
+                                                public boolean hasNext() {
+                                                    return keyIterator.hasNext();
+                                                }
+
+                                                @Override
+                                                public Entry<List<String>, Number> next() {
+                                                    List<String> dims = keyIterator.next();
+                                                    Number metric = values.get(keyIterator.previousIndex());
+                                                    return new SimpleEntry<>(
+                                                            dims,
+                                                            metric
+                                                    );
+                                                }
+                                            };
+                                        }
+
+                                        @Override
+                                        public int size() {
+                                            return values.size();
+                                        }
+                                    };
+                                }
+                            };
+                            return map;
+                        }
+
+                        @Override
+                        public Map<String, Dimension> getDimension() {
+                            return dimensions;
+                        }
+
+                    };
+                }
+            };
+        }
 
     }
 
-    public static class Builder {
+    private static class Builder implements DatasetBuilder {
 
         private final ImmutableSet.Builder<Dimension.Builder> dimensionBuilders;
         private final ImmutableList.Builder<Optional<Number>> values;
+        private Object extension;
+
         private String label;
         private String source;
         private Instant update;
@@ -289,22 +394,25 @@ public class Dataset extends JsonStat {
             this.values = ImmutableList.builder();
         }
 
-        public Builder withLabel(final String label) {
+        @Override
+        public DatasetBuilder withLabel(final String label) {
             this.label = checkNotNull(label, "label was null");
             return this;
         }
 
-        public Builder withSource(final String source) {
+        @Override
+        public DatasetBuilder withSource(final String source) {
             this.source = checkNotNull(source, "source was null");
             return this;
         }
 
-        public Builder updatedAt(final Instant update) {
+        @Override
+        public DatasetBuilder updatedAt(final Instant update) {
             this.update = checkNotNull(update, "updated was null");
             return this;
         }
 
-        public Builder withDimension(Dimension.Builder dimension) {
+        private DatasetBuilder addDimension(Dimension.Builder dimension) {
             checkNotNull(dimension, "the dimension builder was null");
 
 
@@ -317,146 +425,45 @@ public class Dataset extends JsonStat {
             return this;
         }
 
-        public Dataset build() {
-
-            Map<String, Dimension> dimensionMap = Maps.transformValues(
-                    Maps.uniqueIndex(dimensionBuilders.build(), Dimension.Builder::getId),
-                    Dimension.Builder::build
-            );
-
-            // Optimized.
-            ImmutableSet<String> ids = ImmutableSet.copyOf(dimensionMap.keySet());
-
-            // TODO Make sure this is okay.
-            ImmutableList<Integer> sizes = ImmutableList.copyOf(
-                    Iterables.transform(dimensionBuilders.build(), Dimension.Builder::size)
-            );
-
-            Dataset dataset = new Dataset(ids, sizes);
-            dataset.label = label;
-            dataset.source = source;
-            dataset.updated = update;
-            dataset.value = values.build().stream().map(number -> number.isPresent() ? number.get() : null).collect(Collectors.toList());
-            dataset.dimension = dimensionMap;
-
-            return dataset;
-        }
-
         /**
-         * Populate the data set with values.
+         * Assign a value to the extension.
          * <p>
-         * The values are expected to be flattened in row-major order. See {@link Builder#withValues(Stream)} for a
-         * details about row-major order.
-         *
-         * @param values the values in row-major order
-         * @return a built data set
+         * The extension must be serializable by jackson.
          */
-        public Builder withValues(Collection<Number> values) {
-            checkNotNull(values);
-
-            if (values.isEmpty())
-                return withValues(Stream.empty());
-
-            return withValues(values.stream());
-        }
-
-        /**
-         * Populate the data set with values.
-         * <p>
-         * The values are expected to be flattened in row-major order. See {@link Builder#withValues(Stream)} for a
-         * details about row-major order.
-         *
-         * @param values the values in row-major order
-         * @return a built data set
-         */
-        public Builder withValues(Iterable<Number> values) {
-            checkNotNull(values);
-
-            // Optimization.
-            if (!values.iterator().hasNext())
-                return withValues(Stream.empty());
-
-            return withValues(StreamSupport.stream(
-                    values.spliterator(),
-                    false
-            ));
-        }
-
-        /**
-         * Populate the data set with values.
-         * <p>
-         * The values are expected to be flattened in row-major order. For example if we have three dimensions
-         * (A, B and C) with 3, 2 and 4 categories respectively, the values should be ordered iterating first by the 4
-         * categories of C, then by the 2 categories of B and finally by the 3 categories of A:
-         * <p>
-         * <pre>
-         *   A1B1C1   A1B1C2   A1B1C3   A1B1C4
-         *   A1B2C1   A1B2C2   A1B2C3   A1B2C4
-         *
-         *   A2B1C1   A2B1C2   A2B1C3   A1B1C4
-         *   A2B2C1   A2B2C2   A2B2C3   A2B2C4
-         *
-         *   A3B1C1   A3B1C2   A3B1C3   A3B1C4
-         *   A3B2C1   A3B2C2   A3B2C3   A3B2C4
-         * </pre>
-         *
-         * @param values the values in row-major order
-         * @return a built data set
-         */
-        public Builder withValues(Stream<Number> values) {
-            checkNotNull(values);
-
-            // TODO: Does it make sense to create an empty data set?
-            if (!Stream.empty().equals(values))
-                this.values.addAll(values.map(Optional::ofNullable).collect(MoreCollectors.toImmutableList()));
-
+        @Override
+        public Builder withExtension(Object extension) {
+            this.extension = checkNotNull(extension);
             return this;
         }
 
-        /**
-         * Use a mapper function to populate the metrics in the data set.
-         * <p>
-         * The mapper function will be called for every combination of dimensions.
-         *
-         * @param mapper a mapper function to use to populate the metrics in the data set
-         * @return the data set
-         */
-        public Builder withMapper(Function<List<String>, List<Number>> mapper) {
+        public Builder withDimension(Dimension.Builder dimension) {
+            checkNotNull(dimension, "the dimension builder was null");
 
-            // Get all the dimensions.
-            List<ImmutableList<String>> dimensions = dimensionBuilders.build().stream()
-                    .filter(dimension -> !dimension.isMetric())
-                    .map(dimension -> dimension.getIndex().asList())
-                    // TODO: Find out what the order should be here.
-                    //.sorted(Comparator.comparingInt(AbstractCollection::size))
-                    .collect(MoreCollectors.toImmutableList());
+            if (dimensionBuilders.build().contains(dimension))
+                throw new DuplicateDimensionException(
+                        String.format("the builder already contains the dimension %s", dimension.toString())
+                );
 
-            List<List<String>> combinations = Lists.cartesianProduct(dimensions);
-
-            // apply function and unroll.
-            return withValues(combinations.stream().map(mapper).flatMap(Collection::stream));
-        }
-
-        public Builder addRow(ImmutableMap<String, Number> row) {
-
-            for (Dimension.Builder dimension : dimensionBuilders.build()) {
-                String id = dimension.getId();
-
-                // Save the dimension values.
-                if (!dimension.isMetric())
-                    dimension.withCategories(row.get(id).toString());
-                // Add the value.
-                values.add(Optional.ofNullable(row.get(id)));
-
-            }
-
-            return this;
-
-        }
-
-        public Builder withDimensions(Iterable<Dimension.Builder> values) {
-            values.forEach(this::withDimension);
+            dimensionBuilders.add(dimension);
             return this;
         }
+
+        @Override
+        public DatasetValueBuilder withDimensions(Iterable<Dimension.Builder> values) {
+            checkNotNull(values, "dimension builder list was null");
+            values.forEach(this::addDimension);
+            return this.toValueBuilder();
+        }
+
+        @Override
+        public DatasetValueBuilder withDimensions(Dimension.Builder... values) {
+            checkNotNull(values, "dimension builder list was null");
+            return this.withDimensions(Arrays.asList(values));
+        }
+
+        ValuesBuilder toValueBuilder() {
+            return new ValuesBuilder(this.dimensionBuilders.build(), this.label, this.source, this.update, this.extension);
+        }
+
     }
 }
