@@ -2,10 +2,8 @@ package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -24,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 
@@ -66,8 +63,8 @@ public class DatasetDeserializationTest {
 
         Dataset build = next.build();
 
-        Map<List<String>, List<Number>> listListMap = build.asMap();
-        for (Map.Entry<List<String>, List<Number>> listListEntry : listListMap.entrySet()) {
+        Map<List<String>, Number> listListMap = build.asMap();
+        for (Map.Entry<List<String>, Number> listListEntry : listListMap.entrySet()) {
             System.out.println(listListEntry);
         }
 
@@ -88,7 +85,7 @@ public class DatasetDeserializationTest {
         node.with("extension")
                 .put("number", 10)
                 .putArray("array")
-                    .add("string");
+                .add("string");
 
         Dataset jsonStat = mapper.readValue(
                 mapper.writeValueAsBytes(node),
@@ -120,13 +117,13 @@ public class DatasetDeserializationTest {
         assertThat(jsonStat.getSource()).contains("INE and IGE");
         assertThat(jsonStat.getUpdated()).contains(Instant.parse("2012-12-27T12:25:09Z"));
 
-        Iterable<Map.Entry<List<String>, List<Number>>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 5);
+        Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 5);
         assertThat(limit).containsExactly(
-                entry(asList("T", "T", "T", "2001", "T"), singletonList(2695880)),
-                entry(asList("T", "T", "T", "2001", "15"), singletonList(1096027)),
-                entry(asList("T", "T", "T", "2001", "27"), singletonList(357648)),
-                entry(asList("T", "T", "T", "2001", "32"), singletonList(338446)),
-                entry(asList("T", "T", "T", "2001", "36"), singletonList(903759))
+                entry(asList("T", "T", "T", "2001", "T"), 2695880),
+                entry(asList("T", "T", "T", "2001", "15"), 1096027),
+                entry(asList("T", "T", "T", "2001", "27"), 357648),
+                entry(asList("T", "T", "T", "2001", "32"), 338446),
+                entry(asList("T", "T", "T", "2001", "36"), 903759)
         );
 
     }

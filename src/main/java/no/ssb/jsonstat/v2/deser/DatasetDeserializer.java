@@ -201,7 +201,7 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
             builder.withExtension(extension.get());
         }
 
-        return builder.withDimensions(dims.values()).withFlatValues(values);
+        return builder.withDimensions(dims.values()).withValues(values);
     }
 
     List<Number> parseValues(JsonParser p, DeserializationContext ctxt) throws IOException {
