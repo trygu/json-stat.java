@@ -1,17 +1,32 @@
+/**
+ * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
+ *
+ *     DatasetDeserializationTest.java
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package no.ssb.jsonstat.v2;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
-import no.ssb.jsonstat.v2.deser.DatasetDeserializer;
-import no.ssb.jsonstat.v2.deser.DimensionDeserializer;
+import no.ssb.jsonstat.JsonStatModule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -35,11 +50,7 @@ public class DatasetDeserializationTest {
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new Jdk8Module());
         mapper.registerModule(new JavaTimeModule());
-
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(DatasetBuildable.class, new DatasetDeserializer());
-        module.addDeserializer(Dimension.Builder.class, new DimensionDeserializer());
-        mapper.registerModule(module);
+        mapper.registerModule(new JsonStatModule());
     }
 
     @Test

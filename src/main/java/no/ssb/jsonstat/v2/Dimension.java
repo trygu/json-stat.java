@@ -1,17 +1,38 @@
+/**
+ * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
+ *
+ *     Dimension.java
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package no.ssb.jsonstat.v2;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import me.yanaga.guava.stream.MoreCollectors;
-import no.ssb.jsonstat.JsonStat;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Created by hadrien on 07/06/16.
- * https://json-stat.org/format/#dimension
+ * Model for the dimension.
+ *
+ * @see <a href="https://json-stat.org/format/#dimension">https://json-stat.org/format/#dimension</a>
  */
 public class Dimension {
 
