@@ -17,6 +17,8 @@
  */
 package no.ssb.jsonstat.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Model for the dimension.
  *
@@ -39,9 +43,11 @@ public class Dimension {
     private final Category category;
     // https://json-stat.org/format/#label
     private String label;
+    private final Roles role;
 
-    public Dimension(Category category) {
-        this.category = category;
+    public Dimension(Category category, Roles role) {
+        this.category = checkNotNull(category, "category cannot be null");
+        this.role = role;
     }
 
     public static Builder create(final String name) {
@@ -61,8 +67,19 @@ public class Dimension {
         return category;
     }
 
+    @JsonIgnore
+    public Roles getRole() {
+        return role;
+    }
+
     public enum Roles {
-        TIME, GEO, METRIC
+        TIME, GEO, METRIC;
+
+        @JsonValue
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
     }
 
     // https://json-stat.org/format/#category
@@ -281,7 +298,7 @@ public class Dimension {
             Category category = new Category();
             category.index = this.index.build();
             category.label = this.labels.build();
-            Dimension dimension = new Dimension(category);
+            Dimension dimension = new Dimension(category, this.role);
             dimension.setLabel(this.label);
             return dimension;
         }

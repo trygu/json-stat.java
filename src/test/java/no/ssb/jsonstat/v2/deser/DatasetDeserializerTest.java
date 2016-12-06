@@ -19,18 +19,26 @@ package no.ssb.jsonstat.v2.deser;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import no.ssb.jsonstat.JsonStatModule;
+import no.ssb.jsonstat.v2.DatasetBuildable;
 import org.assertj.core.api.SoftAssertions;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.collect.Lists.cartesianProduct;
+import static com.google.common.io.Resources.getResource;
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class DatasetDeserializerTest {
 
@@ -101,6 +109,26 @@ public class DatasetDeserializerTest {
         softly.assertThat(fromArray).as("deserialize values from array").isEqualTo(expected);
         softly.assertAll();
 
+    }
+
+    @Test
+    public void testDimensionOrder() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new GuavaModule());
+        mapper.registerModule(new Jdk8Module());
+        mapper.registerModule(new JavaTimeModule());
+        mapper.registerModule(new JsonStatModule());
+
+        URL resource = getResource(getClass(),"dimOrder.json");
+
+        JsonParser jsonParser = mapper.getFactory().createParser(resource.openStream());
+        jsonParser.nextValue();
+
+        DatasetBuildable deserialize = ds.deserialize(jsonParser, mapper.getDeserializationContext());
+
+        assertThat(deserialize.build().getDimension().keySet()).containsExactly(
+                "A", "B", "C"
+        );
 
     }
 }
