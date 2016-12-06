@@ -24,6 +24,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -98,6 +99,24 @@ public abstract class Dataset extends JsonStat {
      */
     public ImmutableSet<String> getId() {
         return ImmutableSet.copyOf(getDimension().keySet());
+    }
+
+    /**
+     * Return an {@link ImmutableMultimap} representing the roles of the dimensions.
+     *
+     * @see <a href="https://json-stat.org/format/#role">json-stat.org/format/#role</a>
+     */
+    public ImmutableMultimap<Dimension.Roles, String> getRole() {
+        ImmutableMultimap.Builder<Dimension.Roles, String> builder;
+        builder = ImmutableMultimap.builder();
+
+        for (Map.Entry<String, Dimension> dimensionEntry : getDimension().entrySet()) {
+            Dimension.Roles role = dimensionEntry.getValue().getRole();
+            if (role != null) {
+                builder.put(role, dimensionEntry.getKey());
+            }
+        }
+        return builder.build();
     }
 
     /**
@@ -281,7 +300,7 @@ public abstract class Dataset extends JsonStat {
                         Integer dimensionIndex = Math.toIntExact(tuple.getIndex());
                         Number metric = tuple.getValue();
                         return new AbstractMap.SimpleEntry<>(
-                                            dimensionIndex, metric);
+                                dimensionIndex, metric);
                     });
 
             return build(entryStream);
