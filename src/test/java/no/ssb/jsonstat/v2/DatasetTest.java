@@ -30,10 +30,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -330,6 +329,27 @@ public class DatasetTest {
 
         assertThat(value).isNotNull();
 
+    }
+
+    @Test(enabled = true)
+    public void testDatasetDeserializeWith1DimensionIsAccepted() throws Exception  {
+
+        Collection<Number> values = newArrayList(1, 2, 3);
+
+        DatasetBuilder builder = Dataset.create("");
+
+        builder.withSource("");
+        builder.updatedAt(Instant.now());
+
+        Dataset dataset = builder.withDimensions(
+                Dimension.create("A")
+                        .withIndexedLabels(ImmutableMap.of("AA", "AA", "AB", "AB", "AC", "AC"))
+
+        ).withValues(values).build();
+
+        String json = mapper.writeValueAsString(dataset);
+
+        assertThat(json).isNotNull();
     }
 
     @Test(enabled = false)
