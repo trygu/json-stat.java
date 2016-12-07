@@ -331,27 +331,6 @@ public class DatasetTest {
 
     }
 
-    @Test(enabled = true)
-    public void testDatasetDeserializeWith1DimensionIsAccepted() throws Exception  {
-
-        Collection<Number> values = newArrayList(1, 2, 3);
-
-        DatasetBuilder builder = Dataset.create("");
-
-        builder.withSource("");
-        builder.updatedAt(Instant.now());
-
-        Dataset dataset = builder.withDimensions(
-                Dimension.create("A")
-                        .withIndexedLabels(ImmutableMap.of("AA", "AA", "AB", "AB", "AC", "AC"))
-
-        ).withValues(values).build();
-
-        String json = mapper.writeValueAsString(dataset);
-
-        assertThat(json).isNotNull();
-    }
-
     @Test(enabled = false)
     public void testDeserialize() throws Exception {
 

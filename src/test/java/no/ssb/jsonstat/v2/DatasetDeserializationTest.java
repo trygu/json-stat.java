@@ -110,6 +110,30 @@ public class DatasetDeserializationTest {
 
     }
 
+    @Test(enabled = true)
+    public void testDatasetDeserializeWith1DimensionIsAccepted() throws Exception  {
+
+        URL test = Resources.getResource(getClass(), "./json-stat-1-dimension.json");
+
+        ObjectNode node = mapper.readValue(new BufferedInputStream(
+                test.openStream()
+        ), ObjectNode.class);
+
+        assertThat(node).isNotNull();
+
+        Dataset jsonStat = mapper.readValue(
+                mapper.writeValueAsBytes(node),
+                DatasetBuildable.class
+        ).build();
+
+        Map<Integer, Number> value = jsonStat.getValue();
+
+        assertThat(value.get(0)).isEqualTo(1);
+        assertThat(value.get(1)).isEqualTo(2);
+        assertThat(value.get(2)).isEqualTo(3);
+
+    }
+
     @Test
     public void testGalicia() throws Exception {
 
