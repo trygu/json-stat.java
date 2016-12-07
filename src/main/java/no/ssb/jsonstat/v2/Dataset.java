@@ -31,6 +31,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
+import no.ssb.jsonstat.v2.support.DatasetTableView;
 
 import java.time.Instant;
 import java.util.AbstractCollection;
@@ -239,7 +240,7 @@ public abstract class Dataset extends JsonStat {
      * @param column the dimensions to use as columns.
      * @throws IllegalArgumentException if a dimension is missing
      */
-    public abstract Table<Set<String>, Set<String>, Number> asTable(Set<String> row, Set<String> column);
+    public abstract Table<List<String>, List<String>, Number> asTable(Set<String> row, Set<String> column);
 
     /**
      * Return the dimensions of the dataset.
@@ -442,8 +443,8 @@ public abstract class Dataset extends JsonStat {
                         }
 
                         @Override
-                        public Table<Set<String>, Set<String>, Number> asTable(Set<String> row, Set<String> column) {
-                            throw new UnsupportedOperationException("Not implemented yet");
+                        public Table<List<String>, List<String>, Number> asTable(Set<String> row, Set<String> column) {
+                            return new DatasetTableView(this, row, column);
                         }
 
                         @Override
