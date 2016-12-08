@@ -2,12 +2,12 @@
   "version": "2.0",
   "label": "Test",
   "source": "My head",
-  "updated": "2016-01-01T00:00:01",
-  "value": [
-    1,
-    2,
-    3
-  ],
+  "updated": "2016-01-01T00:00:01Z",
+  "value": {
+    "0": 1,
+    "1": 2,
+    "2": 3
+  },
   "dimension": {
     "A": {
       "category": {

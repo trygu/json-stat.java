@@ -111,7 +111,7 @@ public class DatasetDeserializationTest {
     }
 
     @Test(enabled = true)
-    public void testDatasetDeserializeWith1DimensionIsAccepted() throws Exception  {
+    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception  {
 
         URL test = Resources.getResource(getClass(), "./json-stat-1-dimension.json");
 
@@ -128,10 +128,21 @@ public class DatasetDeserializationTest {
 
         Map<Integer, Number> value = jsonStat.getValue();
 
+        // Check value order
+        assertThat(value).isNotNull();
+        assertThat(jsonStat.getSize().get(0)).isEqualTo(3);
+
         assertThat(value.get(0)).isEqualTo(1);
         assertThat(value.get(1)).isEqualTo(2);
         assertThat(value.get(2)).isEqualTo(3);
 
+        // Check value + dimension coupling using asMap()
+        Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 3);
+        assertThat(limit).containsExactly(
+                entry(asList("AA"), 1),
+                entry(asList("AB"), 2),
+                entry(asList("AC"), 3)
+        );
     }
 
     @Test
