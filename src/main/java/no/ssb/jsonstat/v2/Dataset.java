@@ -28,8 +28,10 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Table;
 import me.yanaga.guava.stream.MoreCollectors;
 import no.ssb.jsonstat.JsonStat;
+import no.ssb.jsonstat.v2.support.DatasetTableView;
 
 import java.time.Instant;
 import java.util.AbstractCollection;
@@ -185,6 +187,60 @@ public abstract class Dataset extends JsonStat {
      * The keys are the dimensions and values their associated values.
      */
     public abstract Map<List<String>, Number> asMap();
+
+    /**
+     * Return the values organized as a table.
+     * <p>
+     * Rows and columns are represented as a sets. For example, given the following dataset
+     * with the dimensions A, B and C with 3, 2 and 4 categories respectively and the values:
+     * <pre>
+     *   A1B1C1   A1B1C2   A1B1C3   A1B1C4
+     *   A1B2C1   A1B2C2   A1B2C3   A1B2C4
+     *
+     *   A2B1C1   A2B1C2   A2B1C3   A1B1C4
+     *   A2B2C1   A2B2C2   A2B2C3   A2B2C4
+     *
+     *   A3B1C1   A3B1C2   A3B1C3   A3B1C4
+     *   A3B2C1   A3B2C2   A3B2C3   A3B2C4
+     * </pre>
+     * <p>
+     * Then calling this method with row A and C and column B will return the following table:
+     * <p>
+     * <pre>
+     *              B1       B2
+     *     A1,C1  A1B1C1   A1B2C1
+     *     A1,C2  A1B1C2   A1B2C2
+     *     A1,C3  A1B1C3   A1B2C3
+     *     A1,C4  A1B1C4   A1B1C4
+     *
+     *     A2,C1  A2B1C1   A2B2C1
+     *     A2,C2  A2B1C2   A2B2C2
+     *     A2,C3  A2B1C3   A2B2C3
+     *     A2,C4  A2B1C4   A2B1C4
+     *
+     *     A3,C1  A3B1C1   A3B2C1
+     *     A3,C2  A3B1C2   A3B2C2
+     *     A3,C3  A3B1C3   A3B2C3
+     *     A3,C4  A3B1C4   A3B1C4
+     * </pre>
+     * <p>
+     * Or with row A and column C and B:
+     * <p>
+     * <pre>
+     *           B1       B1       B1       B1       B2       B2       B2       B2
+     *           C1       C2       C3       C4       C1       C2       C3       C4
+     *     A1  A1B1C1   A1B1C2   A1B1C3   A1B1C4   A1B2C1   A1B2C2   A1B2C3   A1B2C4
+     *     A2  A2B1C1   A2B1C2   A2B1C3   A2B1C4   A2B2C1   A2B2C2   A2B2C3   A2B2C4
+     *     A3  A3B1C1   A3B1C2   A3B1C3   A3B1C4   A3B2C1   A3B2C2   A3B2C3   A3B2C4
+     * </pre>
+     * <p>
+     * Note that the returned {@link Table} is a view with a marginal overhead.
+     *
+     * @param row    the dimensions to use as rows.
+     * @param column the dimensions to use as columns.
+     * @throws IllegalArgumentException if a dimension is missing
+     */
+    public abstract Table<List<String>, List<String>, Number> asTable(Set<String> row, Set<String> column);
 
     /**
      * Return the dimensions of the dataset.
@@ -384,6 +440,11 @@ public abstract class Dataset extends JsonStat {
                                 }
                             };
                             return map;
+                        }
+
+                        @Override
+                        public Table<List<String>, List<String>, Number> asTable(Set<String> row, Set<String> column) {
+                            return new DatasetTableView(this, row, column);
                         }
 
                         @Override
