@@ -163,8 +163,7 @@ public class DatasetTest {
                         Dimension.create("B")
                                 .withCategories("B1", "B2"),
                         Dimension.create("C")
-                                .withCategories("C1", "C2", "C3", "C4"),
-                        Dimension.create("E").withMetricRole())
+                                .withCategories("C1", "C2", "C3", "C4"))
                 .withMapper(strings -> String.join("", strings).hashCode()).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows().spliterator(), false)

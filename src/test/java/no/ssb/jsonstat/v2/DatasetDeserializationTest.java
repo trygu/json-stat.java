@@ -165,11 +165,11 @@ public class DatasetDeserializationTest {
 
         Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 5);
         assertThat(limit).containsExactly(
-                entry(asList("T", "T", "T", "2001", "T"), 2695880),
-                entry(asList("T", "T", "T", "2001", "15"), 1096027),
-                entry(asList("T", "T", "T", "2001", "27"), 357648),
-                entry(asList("T", "T", "T", "2001", "32"), 338446),
-                entry(asList("T", "T", "T", "2001", "36"), 903759)
+                entry(asList("T", "T", "T", "2001", "T", "pop"), 2695880),
+                entry(asList("T", "T", "T", "2001", "15", "pop"), 1096027),
+                entry(asList("T", "T", "T", "2001", "27", "pop"), 357648),
+                entry(asList("T", "T", "T", "2001", "32", "pop"), 338446),
+                entry(asList("T", "T", "T", "2001", "36", "pop"), 903759)
         );
 
     }
