@@ -110,6 +110,41 @@ public class DatasetDeserializationTest {
 
     }
 
+    @Test(enabled = true)
+    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception  {
+
+        URL test = Resources.getResource(getClass(), "./json-stat-1-dimension.json");
+
+        ObjectNode node = mapper.readValue(new BufferedInputStream(
+                test.openStream()
+        ), ObjectNode.class);
+
+        assertThat(node).isNotNull();
+
+        Dataset jsonStat = mapper.readValue(
+                mapper.writeValueAsBytes(node),
+                DatasetBuildable.class
+        ).build();
+
+        Map<Integer, Number> value = jsonStat.getValue();
+
+        // Check value order
+        assertThat(value).isNotNull();
+        assertThat(jsonStat.getSize().get(0)).isEqualTo(3);
+
+        assertThat(value.get(0)).isEqualTo(1);
+        assertThat(value.get(1)).isEqualTo(2);
+        assertThat(value.get(2)).isEqualTo(3);
+
+        // Check value + dimension coupling using asMap()
+        Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 3);
+        assertThat(limit).containsExactly(
+                entry(asList("AA"), 1),
+                entry(asList("AB"), 2),
+                entry(asList("AC"), 3)
+        );
+    }
+
     @Test
     public void testGalicia() throws Exception {
 
@@ -130,11 +165,11 @@ public class DatasetDeserializationTest {
 
         Iterable<Map.Entry<List<String>, Number>> limit = Iterables.limit(jsonStat.asMap().entrySet(), 5);
         assertThat(limit).containsExactly(
-                entry(asList("T", "T", "T", "2001", "T"), 2695880),
-                entry(asList("T", "T", "T", "2001", "15"), 1096027),
-                entry(asList("T", "T", "T", "2001", "27"), 357648),
-                entry(asList("T", "T", "T", "2001", "32"), 338446),
-                entry(asList("T", "T", "T", "2001", "36"), 903759)
+                entry(asList("T", "T", "T", "2001", "T", "pop"), 2695880),
+                entry(asList("T", "T", "T", "2001", "15", "pop"), 1096027),
+                entry(asList("T", "T", "T", "2001", "27", "pop"), 357648),
+                entry(asList("T", "T", "T", "2001", "32", "pop"), 338446),
+                entry(asList("T", "T", "T", "2001", "36", "pop"), 903759)
         );
 
     }

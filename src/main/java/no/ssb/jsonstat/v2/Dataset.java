@@ -313,7 +313,6 @@ public abstract class Dataset extends JsonStat {
             indexes = this.dimensions.values().stream()
                     .map(Dimension::getCategory)
                     .map(Dimension.Category::getIndex)
-                    .filter(dims -> dims.size() > 1)
                     .map(ImmutableCollection::asList)
                     .collect(MoreCollectors.toImmutableList());
 
