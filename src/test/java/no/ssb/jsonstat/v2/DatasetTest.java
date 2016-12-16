@@ -30,10 +30,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -164,8 +163,7 @@ public class DatasetTest {
                         Dimension.create("B")
                                 .withCategories("B1", "B2"),
                         Dimension.create("C")
-                                .withCategories("C1", "C2", "C3", "C4"),
-                        Dimension.create("E").withMetricRole())
+                                .withCategories("C1", "C2", "C3", "C4"))
                 .withMapper(strings -> String.join("", strings).hashCode()).build();
 
         List<Object> result = StreamSupport.stream(dataset.getRows().spliterator(), false)
