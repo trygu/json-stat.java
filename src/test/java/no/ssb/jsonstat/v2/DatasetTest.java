@@ -253,6 +253,41 @@ public class DatasetTest {
     }
 
     @Test
+    public void testExtension() throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        mapper.registerModule(new JsonStatModule());
+        mapper.registerModule(new Jdk8Module().configureAbsentsAsNulls(true));
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.registerModule(new GuavaModule().configureAbsentsAsNulls(false));
+
+        DatasetBuilder builder = Dataset.create()
+                .withLabel("Testing")
+                .withSource("This is the source");
+
+        Dataset dataset = builder
+                .withExtension(ImmutableMap.<String, String>of("extensionKey", "extensionValue"))
+                .withDimensions(
+                        Dimension.create("Measures")
+                                .withLabel("Measures")
+                                .withMetricRole()
+                                .withCategories("Count", "Sum"),
+                        Dimension.create("Time").withLabel("Year").withTimeRole().withCategories("2001", "2002", "2003"),
+                        Dimension.create("Geography").withLabel("Geography").withCategories("Chile", "Argentina", "Uruguay", "Brasil")
+                )
+                .withValues(Arrays.asList(new Number[] {1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12}))
+
+                .build();
+
+        String value = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataset);
+
+        assertThat(value).contains("extensionKey");
+        assertThat(value).contains("extensionValue");
+
+    }
+
+    @Test
     public void testSerialize() throws Exception {
 
         DatasetBuilder builder = Dataset.create().withLabel("");
