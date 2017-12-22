@@ -66,6 +66,7 @@ public class DimensionDeserializerTest {
 
         String json = "" +
                 "{" +
+                "  \"link\" : { \"describedby\": [ { \"extension\": { \"Region\": \"urn:ssb:classification:klass:104\" } } ] }," +
                 "  \"label\" : \"place of birth\"," +
                 "  \"category\" : {" +
                 "    \"index\" : [\"T\", \"C\", \"P\", \"G\", \"A\", \"F\"]," +
