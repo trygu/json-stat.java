@@ -74,6 +74,9 @@ public class DimensionDeserializer extends StdDeserializer<Dimension.Builder> {
                 case "label":
                     dimension.withLabel(parseLabel(p, ctxt));
                     break;
+                case "link":
+                    p.skipChildren();
+                    break;
                 default:
                     ctxt.handleUnknownProperty(
                             p,
