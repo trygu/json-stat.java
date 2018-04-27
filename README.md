@@ -18,7 +18,7 @@ Add json stat dependency into your project
 <dependency>
             <groupId>no.ssb.jsonstat</groupId>
             <artifactId>json-stat-java</artifactId>
-            <version>0.2.0</version>
+            <version>0.2.2</version>
 </dependency>
 ````
 
@@ -94,6 +94,11 @@ Deserialize a dataset
 class Example {
     static {
         mapper = new ObjectMapper();
+        
+        mapper.registerModule(new GuavaModule());
+        mapper.registerModule(new Jdk8Module());
+        mapper.registerModule(new JavaTimeModule());
+        
         mapper.registerModule(new JsonStatModule());
 
         Dataset.Builder builder = mapper.readValue("{ ... }", Dataset.Builder.class);

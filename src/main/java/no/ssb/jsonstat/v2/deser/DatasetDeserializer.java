@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import no.ssb.jsonstat.v2.Dataset;
@@ -193,6 +194,7 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
             }
         }
 
+
         // Setup roles
         for (Map.Entry<String, String> dimRole : roles.entries()) {
             Dimension.Roles role = Dimension.Roles.valueOf(
@@ -207,6 +209,11 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
             dimension.withRole(role);
         }
 
+        List<Dimension.Builder> orderedDimensions = Lists.newArrayList();
+        for (String dimensionName : ids) {
+            orderedDimensions.add(dims.get(dimensionName));
+        }
+
         // TODO: Check size?
 
         // Check ids and add to the data set.
@@ -218,7 +225,7 @@ public class DatasetDeserializer extends StdDeserializer<DatasetBuildable> {
             builder.withExtension(extension.get());
         }
 
-        return builder.withDimensions(dims.values()).withValues(values);
+        return builder.withDimensions(orderedDimensions).withValues(values);
     }
 
     List<Number> parseValues(JsonParser p, DeserializationContext ctxt) throws IOException {
