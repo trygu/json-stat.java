@@ -64,6 +64,25 @@
         <developerConnection>scm:git:git@github.com:statisticsnorway/json-stat.java</developerConnection>
         <url>https://github.com/statisticsnorway/json-stat.java</url>
     </scm>
+    
+    <profiles>
+        <profile>
+            <!-- internal distribution for ssb -->
+            <id>ssb</id>
+            <distributionManagement>
+                <repository>
+                    <id>releases</id>
+                    <name>SSB Nexus Releases</name>
+                    <url>http://kodehus.ssb.no/content/repositories/releases/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>snapshots</id>
+                    <name>SSB Snapshot Repository</name>
+                    <url>http://kodehus.ssb.no/content/repositories/snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 
     <dependencies>
 
