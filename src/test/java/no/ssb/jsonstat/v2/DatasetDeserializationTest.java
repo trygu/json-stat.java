@@ -1,14 +1,14 @@
 /**
  * Copyright (C) 2016 Hadrien Kohl (hadrien.kohl@gmail.com) and contributors
- *
- *     DatasetDeserializationTest.java
- *
+ * <p>
+ * DatasetDeserializationTest.java
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +26,6 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,9 +33,7 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import com.google.common.collect.Table;
-import com.google.common.collect.Tables;
 import com.google.common.io.Resources;
 import com.google.common.primitives.Ints;
 import no.ssb.jsonstat.JsonStatModule;
@@ -128,7 +125,7 @@ public class DatasetDeserializationTest {
     }
 
     @Test
-    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception  {
+    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception {
 
         URL test = Resources.getResource(getClass(), "./json-stat-1-dimension.json");
 
@@ -231,8 +228,8 @@ public class DatasetDeserializationTest {
         List<Map<List<String>, Number>> columnMaps = Lists.newArrayListWithCapacity(10000);
 
         List<Table<List<String>, List<String>, Number>> tests = Arrays.asList(
-        //        staticCartesian,
-          //      staticCartesianSparse,
+                //        staticCartesian,
+                //      staticCartesianSparse,
                 view
         );
         for (Table<List<String>, List<String>, Number> test : tests) {

@@ -81,7 +81,6 @@ public class DatasetTableView implements Table<List<String>, List<String>, Numbe
         UnmodifiableIterator<String> idIterator = dataset.getId().asList().reverse().iterator();
 
         factors.put(idIterator.next(), 1);
-        //sizeIterator.next();
 
         Integer size = 1;
         while (sizeIterator.hasNext() && idIterator.hasNext()) {
