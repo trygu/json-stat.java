@@ -81,7 +81,6 @@ public class DatasetTableView implements Table<List<String>, List<String>, Numbe
         UnmodifiableIterator<String> idIterator = dataset.getId().asList().reverse().iterator();
 
         factors.put(idIterator.next(), 1);
-        //sizeIterator.next();
 
         Integer size = 1;
         while (sizeIterator.hasNext() && idIterator.hasNext()) {
@@ -176,15 +175,20 @@ public class DatasetTableView implements Table<List<String>, List<String>, Numbe
     @Override
     public Number get(Object rowKey, Object columnKey) {
         try {
-            Iterator<String> rowList = ((List<String>) rowKey).iterator();
-            Iterator<String> columnList = ((List<String>) columnKey).iterator();
+            List<String> rowList = ((List<String>) rowKey);
+            List<String> columnList = ((List<String>) columnKey);
+            ImmutableList<String> rows = this.rows.asList();
             int index = 0;
-            for (String row : rows) {
-                String key = rowList.next();
+            for (int i = 0; i < rows.size(); i++) {
+                String key = rowList.get(i);
+                String row = rows.get(i);
                 index += dimensions.get(row).indexOf(key) * factors.get(row);
             }
-            for (String column : columns) {
-                String key = columnList.next();
+
+            ImmutableList<String> columns = this.columns.asList();
+            for (int i = 0; i < columns.size(); i++) {
+                String key = columnList.get(i);
+                String column = columns.get(i);
                 index += dimensions.get(column).indexOf(key) * factors.get(column);
             }
             return source.getValue().get(index);
