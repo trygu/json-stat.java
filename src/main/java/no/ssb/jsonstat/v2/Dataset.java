@@ -61,7 +61,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * This model is a java based implementation of the JSON-stat format defined at
  * <a href="https://json-stat.org/">json-stat.org/</a>. It relies heavily on Java 8 and the Google Guava library.
  * <p>
- * Instances of this class are immutable and must be created using the provided {@link Dataset#create(String)} static
+ * Instances of this class are immutable and must be created using the provided {@link Dataset#create()} static
  * method.
  */
 public abstract class Dataset extends JsonStat {
@@ -80,14 +80,14 @@ public abstract class Dataset extends JsonStat {
     }
 
     /**
-     * Create a new {@link Builder} instance.
+     * Create a new {@link DatasetBuilder} instance.
      */
     public static DatasetBuilder create() {
         return new Builder();
     }
 
     /**
-     * Create a new {@link Builder} instance.
+     * Create a new {@link DatasetBuilder} instance.
      */
     public static DatasetBuilder create(String label) {
         Builder builder = new Builder();
