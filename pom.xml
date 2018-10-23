@@ -23,7 +23,7 @@
 
     <groupId>no.ssb.jsonstat</groupId>
     <artifactId>json-stat-java</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.4</version>
     <packaging>jar</packaging>
 
     <name>Json stat for Java</name>
@@ -65,18 +65,37 @@
         <url>https://github.com/statisticsnorway/json-stat.java</url>
     </scm>
 
+    <profiles>
+        <profile>
+            <!-- internal distribution for ssb -->
+            <id>ssb</id>
+            <distributionManagement>
+                <repository>
+                    <id>releases</id>
+                    <name>SSB Nexus Releases</name>
+                    <url>http://kodehus.ssb.no/content/repositories/releases/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>snapshots</id>
+                    <name>SSB Snapshot Repository</name>
+                    <url>http://kodehus.ssb.no/content/repositories/snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+
     <dependencies>
 
         <dependency>
             <groupId>com.codepoetics</groupId>
             <artifactId>protonpack</artifactId>
-            <version>1.9</version>
+            <version>1.13</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.8.5</version>
+            <version>2.8.11.1</version>
         </dependency>
 
         <dependency>
@@ -94,19 +113,19 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>2.8.5</version>
+            <version>2.8.11</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-guava</artifactId>
-            <version>2.8.5</version>
+            <version>2.8.11</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.8.5</version>
+            <version>2.8.11</version>
         </dependency>
 
         <dependency>
@@ -124,19 +143,11 @@
         </dependency>
 
         <dependency>
-            <groupId>com.revinate</groupId>
-            <artifactId>assertj-json</artifactId>
-            <version>1.0.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>2.2.28</version>
             <scope>test</scope>
         </dependency>
-
 
         <dependency>
             <groupId>com.revinate</groupId>
@@ -150,6 +161,35 @@
     <build>
 
         <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-no-snapshots</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>!
+ /^\
+/ ! \  Snapshot dependencies are not allowed in releases
+-----
+                                        !
+                                    </message>
+                                    <onlyWhenRelease>true</onlyWhenRelease>
+                                </requireReleaseDeps>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>com.mycila</groupId>

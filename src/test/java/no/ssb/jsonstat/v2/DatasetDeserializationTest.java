@@ -17,6 +17,7 @@
  */
 package no.ssb.jsonstat.v2;
 
+import com.codepoetics.protonpack.StreamUtils;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,17 +25,30 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
 import com.google.common.io.Resources;
+import com.google.common.primitives.Ints;
 import no.ssb.jsonstat.JsonStatModule;
+import no.ssb.jsonstat.v2.support.DatasetTableView;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.net.URL;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,7 +125,7 @@ public class DatasetDeserializationTest {
     }
 
     @Test
-    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception  {
+    public void testDatasetDeserializationWith1DimensionOrderValuesCorrectly() throws Exception {
 
         URL test = Resources.getResource(getClass(), "./json-stat-1-dimension.json");
 
@@ -143,6 +157,14 @@ public class DatasetDeserializationTest {
                 entry(asList("AB"), 2),
                 entry(asList("AC"), 3)
         );
+    }
+
+    private Set<List<String>> computeIndex(Set<String> keys, Map<String, Set<String>> dimensions) {
+        List<Set<String>> rowDimensions = Lists.newArrayList();
+        for (String row : keys) {
+            rowDimensions.add(ImmutableSet.copyOf(dimensions.get(row)));
+        }
+        return Sets.cartesianProduct(rowDimensions);
     }
 
     @Test

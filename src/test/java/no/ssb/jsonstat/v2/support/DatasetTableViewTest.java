@@ -17,6 +17,7 @@
  */
 package no.ssb.jsonstat.v2.support;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -28,7 +29,10 @@ import no.ssb.jsonstat.v2.Dimension;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
